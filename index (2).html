@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thai Life RPG - ชีวิตไทย</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: #0d1117;
+            color: #fff;
+            overflow: hidden;
+            user-select: none;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        #game-canvas {
+            flex: 1;
+            background: #2d5016;
+            image-rendering: pixelated;
+            cursor: crosshair;
+        }
+        .ui-layer {
+            position: absolute;
+            pointer-events: none;
+        }
+        .ui-layer.interactive {
+            pointer-events: auto;
+        }
+        #top-hud {
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 100;
+        }
+        .hud-panel {
+            background: rgba(60, 40, 20, 0.92);
+            border: 3px solid #c9a84c;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .hud-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 20px;
+            text-align: center;
+            line-height: 28px;
+        }
+        .hud-bar {
+            width: 120px;
+            height: 14px;
+            background: #2a1a0a;
+            border: 2px solid #8b6914;
+            border-radius: 7px;
+            overflow: hidden;
+            position: relative;
+        }
+        .hud-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        .hp-fill { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+        .energy-fill { background: linear-gradient(90deg, #3498db, #2980b9); }
+        .exp-fill { background: linear-gradient(90deg, #f39c12, #e67e22); }
+        .hud-text {
+            font-size: 12px;
+            color: #f0d78c;
+            min-width: 50px;
+            text-align: right;
+        }
+        .hud-money {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        #bottom-menu {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(180deg, rgba(60,40,20,0.95), rgba(40,25,10,0.98));
+            border-top: 3px solid #c9a84c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 0 10px;
+            z-index: 100;
+        }
+        .menu-btn {
+            width: 58px;
+            height: 58px;
+            background: linear-gradient(145deg, #5a3d1f, #3d2812);
+            border: 2px solid #c9a84c;
+            border-radius: 10px;
+            color: #f0d78c;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            transition: all 0.2s;
+            position: relative;
+            font-family: 'Kanit', sans-serif;
+        }
+        .menu-btn:hover {
+            background: linear-gradient(145deg, #7a5d3f, #5a3d1f);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(201,168,76,0.3);
+        }
+        .menu-btn.active {
+            background: linear-gradient(145deg, #8b6914, #6b4f0a);
+            border-color: #ffd700;
+        }
+        .menu-btn .btn-icon { font-size: 22px; }
+        .menu-btn .btn-label { font-size: 10px; }
+        .menu-btn .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e74c3c;
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            border: 1px solid #fff;
+        }
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: linear-gradient(145deg, #f5e6c8, #e8d5a8);
+            border: 4px solid #8b6914;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 20px;
+            color: #3d2812;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #c9a84c;
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #6b4f0a;
+        }
+        .modal-close {
+            background: #c0392b;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .inv-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .inv-slot {
+            aspect-ratio: 1;
+            background: #d4c4a0;
+            border: 2px solid #8b6914;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .inv-slot:hover {
+            background: #e8d5a8;
+            transform: scale(1.05);
+        }
+        .inv-slot .item-count {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #3d2812;
+            background: rgba(255,255,255,0.8);
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .shop-item {
+            background: #fff8e8;
+            border: 2px solid #c9a84c;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .shop-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+            border-color: #ffd700;
+        }
+        .shop-item .item-icon { font-size: 40px; margin-bottom: 5px; }
+        .shop-item .item-name { font-weight: bold; font-size: 14px; margin-bottom: 3px; }
+        .shop-item .item-price { color: #b8860b; font-weight: bold; }
+        .shop-item .item-stats { font-size: 11px; color: #666; margin-top: 4px; }
+        .equip-area {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .equip-slot {
+            background: #d4c4a0;
+            border: 2px dashed #8b6914;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .equip-slot.filled {
+            border-style: solid;
+            background: #fff8e8;
+        }
+        .equip-slot .slot-label { font-size: 10px; color: #8b6914; margin-bottom: 4px; }
+        #battle-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, #1a0a2e, #0d0520);
+            display: none;
+            z-index: 150;
+            flex-direction: column;
+        }
+        #battle-screen.active { display: flex; }
+        .battle-arena {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px;
+        }
+        .battle-char { text-align: center; padding: 20px; }
+        .battle-char .char-sprite {
+            font-size: 80px;
+            margin-bottom: 10px;
+            animation: battle-idle 1s infinite alternate;
+        }
+        @keyframes battle-idle {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+        .battle-char .char-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .battle-char .hp-bar {
+            width: 150px;
+            height: 20px;
+            background: #2a1a0a;
+            border: 2px solid #8b6914;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        .battle-char .hp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+            transition: width 0.5s ease;
+        }
+        .battle-controls {
+            height: 120px;
+            background: rgba(40, 25, 10, 0.95);
+            border-top: 3px solid #c9a84c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 0 20px;
+        }
+        .battle-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 2px solid #c9a84c;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Kanit', sans-serif;
+        }
+        .battle-btn.attack { background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; }
+        .battle-btn.defend { background: linear-gradient(145deg, #3498db, #2980b9); color: white; }
+        .battle-btn.skill { background: linear-gradient(145deg, #f39c12, #e67e22); color: white; }
+        .battle-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(201,168,76,0.4); }
+        .battle-log {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 400px;
+            text-align: center;
+        }
+        #dialogue-box {
+            position: absolute;
+            bottom: 80px;
+            left: 10px;
+            right: 10px;
+            background: rgba(60, 40, 20, 0.95);
+            border: 3px solid #c9a84c;
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: none;
+            z-index: 90;
+            min-height: 80px;
+        }
+        #dialogue-box.active { display: block; }
+        .dialogue-speaker { color: #ffd700; font-weight: bold; margin-bottom: 5px; }
+        .dialogue-text { color: #f0d78c; line-height: 1.5; }
+        .dialogue-next { color: #ffd700; font-size: 12px; margin-top: 8px; text-align: right; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        #notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(60, 40, 20, 0.95);
+            border: 2px solid #c9a84c;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            z-index: 300;
+            display: none;
+            animation: notif-slide 0.3s ease;
+        }
+        #notification.active { display: block; }
+        @keyframes notif-slide {
+            0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+            100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        #quest-tracker {
+            position: absolute;
+            top: 70px;
+            right: 10px;
+            background: rgba(60, 40, 20, 0.9);
+            border: 2px solid #c9a84c;
+            border-radius: 8px;
+            padding: 10px;
+            width: 200px;
+            z-index: 90;
+        }
+        .quest-title { color: #ffd700; font-weight: bold; font-size: 12px; margin-bottom: 5px; }
+        .quest-desc { color: #f0d78c; font-size: 11px; }
+        .quest-progress { margin-top: 5px; height: 6px; background: #2a1a0a; border-radius: 3px; overflow: hidden; }
+        .quest-progress-fill { height: 100%; background: #f39c12; transition: width 0.3s; }
+        #mini-map {
+            position: absolute;
+            top: 70px;
+            left: 10px;
+            width: 120px;
+            height: 120px;
+            background: rgba(20, 40, 20, 0.9);
+            border: 2px solid #c9a84c;
+            border-radius: 8px;
+            z-index: 90;
+        }
+        @media (max-width: 600px) {
+            .menu-btn { width: 48px; height: 48px; font-size: 9px; }
+            .menu-btn .btn-icon { font-size: 18px; }
+            .hud-bar { width: 80px; }
+            .shop-grid { grid-template-columns: repeat(2, 1fr); }
+            .inv-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="top-hud" class="ui-layer">
+            <div class="hud-panel">
+                <div>
+                    <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                        <span class="hud-icon">❤️</span>
+                        <div class="hud-bar"><div class="hud-bar-fill hp-fill" id="hp-bar" style="width:100%"></div></div>
+                        <span class="hud-text" id="hp-text">100/100</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                        <span class="hud-icon">⚡</span>
+                        <div class="hud-bar"><div class="hud-bar-fill energy-fill" id="energy-bar" style="width:100%"></div></div>
+                        <span class="hud-text" id="energy-text">50/50</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:5px">
+                        <span class="hud-icon">⭐</span>
+                        <div class="hud-bar"><div class="hud-bar-fill exp-fill" id="exp-bar" style="width:0%"></div></div>
+                        <span class="hud-text" id="exp-text">Lv.1</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hud-panel">
+                <span class="hud-icon">💰</span>
+                <span class="hud-money" id="money-display">0 บาท</span>
+            </div>
+        </div>
+        <canvas id="mini-map" class="ui-layer"></canvas>
+        <div id="quest-tracker" class="ui-layer">
+            <div class="quest-title">📜 ภารกิจ</div>
+            <div class="quest-desc" id="quest-desc">เริ่มต้นชีวิตใหม่ในหมู่บ้าน</div>
+            <div class="quest-progress"><div class="quest-progress-fill" id="quest-progress" style="width:0%"></div></div>
+        </div>
+        <div id="dialogue-box" class="ui-layer interactive">
+            <div class="dialogue-speaker" id="dialogue-speaker">ยายสม</div>
+            <div class="dialogue-text" id="dialogue-text">ยินดีต้อนรับสู่หมู่บ้านของเรา ลูกเอ้ย!</div>
+            <div class="dialogue-next">▶ กด Space เพื่อดำเนินการต่อ</div>
+        </div>
+        <div id="notification"></div>
+        <div id="bottom-menu" class="ui-layer interactive">
+            <button class="menu-btn active" data-panel="none" onclick="game.togglePanel('none')">
+                <span class="btn-icon">🎮</span><span class="btn-label">เล่น</span>
+            </button>
+            <button class="menu-btn" data-panel="inventory" onclick="game.togglePanel('inventory')">
+                <span class="btn-icon">🎒</span><span class="btn-label">กระเป๋า</span>
+                <span class="badge" id="inv-badge" style="display:none">0</span>
+            </button>
+            <button class="menu-btn" data-panel="equipment" onclick="game.togglePanel('equipment')">
+                <span class="btn-icon">👕</span><span class="btn-label">แต่งตัว</span>
+            </button>
+            <button class="menu-btn" data-panel="shop" onclick="game.togglePanel('shop')">
+                <span class="btn-icon">🏪</span><span class="btn-label">ร้านค้า</span>
+            </button>
+            <button class="menu-btn" data-panel="skills" onclick="game.togglePanel('skills')">
+                <span class="btn-icon">⚔️</span><span class="btn-label">สกิล</span>
+            </button>
+            <button class="menu-btn" data-panel="quests" onclick="game.togglePanel('quests')">
+                <span class="btn-icon">📜</span><span class="btn-label">ภารกิจ</span>
+                <span class="badge" id="quest-badge" style="display:none">0</span>
+            </button>
+            <button class="menu-btn" onclick="game.findBattle()">
+                <span class="btn-icon">🥊</span><span class="btn-label">ต่อสู้</span>
+            </button>
+            <button class="menu-btn" data-panel="settings" onclick="game.togglePanel('settings')">
+                <span class="btn-icon">⚙️</span><span class="btn-label">ตั้งค่า</span>
+            </button>
+        </div>
+    </div>
+    <div id="modal-inventory" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">🎒 กระเป๋าสัมภาระ</span>
+                <button class="modal-close" onclick="game.closeModal()">✕</button>
+            </div>
+            <div class="inv-grid" id="inventory-grid"></div>
+        </div>
+    </div>
+    <div id="modal-equipment" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">👕 แต่งตัว & อุปกรณ์</span>
+                <button class="modal-close" onclick="game.closeModal()">✕</button>
+            </div>
+            <div style="margin-bottom:10px"><strong>สถานะตัวละคร:</strong>
+                <span id="equip-stats">พลังโจมตี: 5 | ป้องกัน: 2 | ความเร็ว: 3</span>
+            </div>
+            <div class="equip-area" id="equip-slots">
+                <div class="equip-slot" data-slot="head"><span class="slot-label">หมวก</span><span id="equip-head">-</span></div>
+                <div class="equip-slot" data-slot="body"><span class="slot-label">เสื้อ</span><span id="equip-body">-</span></div>
+                <div class="equip-slot" data-slot="weapon"><span class="slot-label">อาวุธ</span><span id="equip-weapon">-</span></div>
+                <div class="equip-slot" data-slot="accessory"><span class="slot-label">เครื่องประดับ</span><span id="equip-accessory">-</span></div>
+            </div>
+            <div style="margin-top:15px"><strong>ไอเทมในกระเป๋าที่สวมใส่ได้:</strong></div>
+            <div class="inv-grid" id="equip-inventory" style="margin-top:10px"></div>
+        </div>
+    </div>
+    <div id="modal-shop" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">🏪 ตลาดน้ำ / ร้านค้า</span>
+                <button class="modal-close" onclick="game.closeModal()">✕</button>
+            </div>
+            <div style="margin-bottom:10px;color:#b8860b;font-weight:bold">💰 เงินที่มี: <span id="shop-money">0</span> บาท</div>
+            <div class="shop-grid" id="shop-grid"></div>
+        </div>
+    </div>
+    <div id="modal-skills" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">⚔️ สกิลการต่อสู้</span>
+                <button class="modal-close" onclick="game.closeModal()">✕</button>
+            </div>
+            <div id="skills-list"></div>
+        </div>
+    </div>
+    <div id="modal-quests" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">📜 ภารกิจ</span>
+                <button class="modal-close" onclick="game.closeModal()">✕</button>
+            </div>
+            <div id="quests-list"></div>
+        </div>
+    </div>
+    <div id="modal-settings" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">⚙️ ตั้งค่า</span>
+                <button class="modal-close" onclick="game.closeModal()">✕</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:15px">
+                <div><label>🔊 เสียงเพลง</label><input type="range" min="0" max="100" value="50" style="width:100%"></div>
+                <div><label>🔊 เสียงเอฟเฟกต์</label><input type="range" min="0" max="100" value="70" style="width:100%"></div>
+                <button class="battle-btn" onclick="game.saveGame();game.closeModal()">💾 บันทึกเกม</button>
+                <button class="battle-btn" style="background:#666" onclick="game.loadGame();game.closeModal()">📂 โหลดเกม</button>
+            </div>
+        </div>
+    </div>
+    <div id="battle-screen">
+        <div class="battle-log" id="battle-log">ศึกเริ่มต้นขึ้น!</div>
+        <div class="battle-arena">
+            <div class="battle-char" id="battle-player">
+                <div class="char-sprite" id="player-sprite">🧑‍🌾</div>
+                <div class="char-name" id="player-name">คุณ</div>
+                <div class="hp-bar"><div class="hp-bar-fill" id="player-hp" style="width:100%"></div></div>
+                <div style="margin-top:5px;font-size:12px"><span id="player-hp-text">100/100</span></div>
+            </div>
+            <div style="font-size:40px">VS</div>
+            <div class="battle-char" id="battle-enemy">
+                <div class="char-sprite" id="enemy-sprite">🐍</div>
+                <div class="char-name" id="enemy-name">งูเห่า</div>
+                <div class="hp-bar"><div class="hp-bar-fill" id="enemy-hp" style="width:100%"></div></div>
+                <div style="margin-top:5px;font-size:12px"><span id="enemy-hp-text">50/50</span></div>
+            </div>
+        </div>
+        <div class="battle-controls">
+            <button class="battle-btn attack" onclick="battle.action('attack')">⚔️ โจมตี</button>
+            <button class="battle-btn skill" onclick="battle.action('skill')">🔥 สกิล</button>
+            <button class="battle-btn defend" onclick="battle.action('defend')">🛡️ ป้องกัน</button>
+            <button class="battle-btn" style="background:#666" onclick="battle.flee()">🏃 หนี</button>
+        </div>
+    </div>
+
+<script>
+// ============================================
+// THAI LIFE RPG - GAME ENGINE
+// สามารถขยายเพิ่มเติมได้โดยแก้ไขส่วนต่างๆ
+// ============================================
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+// ============ GAME CONFIG ============
+const CONFIG = {
+    TILE_SIZE: 32,
+    MAP_WIDTH: 40,
+    MAP_HEIGHT: 30,
+    DAY_LENGTH: 600,
+    COLORS: {
+        grass: '#4a7c2a', grassDark: '#3d6620', water: '#2e86ab',
+        sand: '#d4a574', wood: '#8b6914', stone: '#7a7a7a', path: '#c4a35a'
+    }
+};
+
+// ============ GAME STATE ============
+const state = {
+    player: {
+        x: 20, y: 15, hp: 100, maxHp: 100, energy: 50, maxEnergy: 50,
+        exp: 0, maxExp: 100, level: 1, money: 0, direction: 'down',
+        equipped: { head: null, body: null, weapon: null, accessory: null },
+        stats: { atk: 5, def: 2, spd: 3 }
+    },
+    inventory: [],
+    skills: [
+        { id: 'punch', name: 'หมัดเด็ด', damage: 10, cost: 0, unlocked: true },
+        { id: 'kick', name: 'เตะก้านคอ', damage: 15, cost: 5, unlocked: true },
+        { id: 'elbow', name: 'ศอกเข้า', damage: 25, cost: 10, unlocked: false, reqLevel: 3 },
+        { id: 'knee', name: 'เข่าศอก', damage: 35, cost: 15, unlocked: false, reqLevel: 5 },
+        { id: 'muay', name: 'มวยไทย', damage: 50, cost: 25, unlocked: false, reqLevel: 8 }
+    ],
+    quests: [
+        { id: 'q1', title: 'เริ่มต้นชีวิตใหม่', desc: 'พูดคุยกับชาวบ้าน 3 คน', target: 3, current: 0, reward: 50, completed: false },
+        { id: 'q2', title: 'เก็บเกี่ยว', desc: 'เก็บผักจากสวน 5 ชิ้น', target: 5, current: 0, reward: 100, completed: false },
+        { id: 'q3', title: 'นักสู้มือใหม่', desc: 'ชนะการต่อสู้ 1 ครั้ง', target: 1, current: 0, reward: 200, completed: false },
+        { id: 'q4', title: 'เศรษฐีชาวสวน', desc: 'มีเงิน 500 บาท', target: 500, current: 0, reward: 300, completed: false },
+        { id: 'q5', title: 'นักรบระดับกลาง', desc: 'เลเวล 5', target: 5, current: 1, reward: 500, completed: false }
+    ],
+    time: 0, day: 1, currentPanel: null, inDialogue: false, dialogueQueue: [],
+    npcs: [], objects: [], particles: [], npcTalked: new Set(), battleWon: 0
+};
+
+// ============ ITEM DATABASE ============
+const ITEMS = {
+    rice: { id: 'rice', name: 'ข้าวสวย', icon: '🍚', type: 'food', price: 10, heal: 20, desc: 'ข้าวสวยร้อนๆ' },
+    somtam: { id: 'somtam', name: 'ส้มตำ', icon: '🥗', type: 'food', price: 35, heal: 40, desc: 'ส้มตำแซ่บๆ' },
+    tomyum: { id: 'tomyum', name: 'ต้มยำกุ้ง', icon: '🍲', type: 'food', price: 60, heal: 60, desc: 'ต้มยำรสเด็ด' },
+    mango: { id: 'mango', name: 'มะม่วง', icon: '🥭', type: 'food', price: 15, heal: 15, desc: 'มะม่วงสุกหวาน' },
+    coconut: { id: 'coconut', name: 'มะพร้าว', icon: '🥥', type: 'food', price: 12, heal: 18, desc: 'มะพร้าวน้ำหอม' },
+    padthai: { id: 'padthai', name: 'ผัดไทย', icon: '🍜', type: 'food', price: 45, heal: 50, desc: 'ผัดไทยเส้นจันท์' },
+
+    hat_farmer: { id: 'hat_farmer', name: 'หมวกชาวนา', icon: '👒', type: 'head', price: 80, stats: { def: 1 }, desc: 'หมวกสานกันแดด' },
+    hat_school: { id: 'hat_school', name: 'หมวกนักเรียน', icon: '🎓', type: 'head', price: 50, stats: { def: 0, spd: 1 }, desc: 'หมวกนักเรียนไทย' },
+    hat_warrior: { id: 'hat_warrior', name: 'หมวกนักรบ', icon: '⛑️', type: 'head', price: 200, stats: { def: 3 }, desc: 'หมวกเหล็กกันกระแทก' },
+
+    shirt_farmer: { id: 'shirt_farmer', name: 'เสื้อลายสก็อต', icon: '👕', type: 'body', price: 120, stats: { def: 2 }, desc: 'เสื้อชาวนาสุดเท่' },
+    shirt_silk: { id: 'shirt_silk', name: 'เสื้อผ้าไหม', icon: '👘', type: 'body', price: 300, stats: { def: 1, spd: 2 }, desc: 'เสื้อผ้าไหมลายไทย' },
+    shirt_armor: { id: 'shirt_armor', name: 'เกราะไม้ไผ่', icon: '🦺', type: 'body', price: 400, stats: { def: 5 }, desc: 'เกราะทำจากไม้ไผ่' },
+
+    weapon_stick: { id: 'weapon_stick', name: 'ไม้เท้า', icon: '🦯', type: 'weapon', price: 30, stats: { atk: 2 }, desc: 'ไม้เท้าไม้ไผ่' },
+    weapon_machete: { id: 'weapon_machete', name: 'มีดพร้า', icon: '🔪', type: 'weapon', price: 150, stats: { atk: 5 }, desc: 'มีดพร้าคมกริบ' },
+    weapon_sword: { id: 'weapon_sword', name: 'ดาบไทย', icon: '⚔️', type: 'weapon', price: 500, stats: { atk: 10 }, desc: 'ดาบโบราณสุดคม' },
+    weapon_spear: { id: 'weapon_spear', name: 'หอกไม้ไผ่', icon: '🔱', type: 'weapon', price: 350, stats: { atk: 8 }, desc: 'หอกไม้ไผ่แหลมคม' },
+    weapon_axe: { id: 'weapon_axe', name: 'ขวาน', icon: '🪓', type: 'weapon', price: 250, stats: { atk: 6 }, desc: 'ขวานไม้สัก' },
+
+    acc_amulet: { id: 'acc_amulet', name: 'พระเครื่อง', icon: '📿', type: 'accessory', price: 250, stats: { def: 1, atk: 1 }, desc: 'พระเครื่องศักดิ์สิทธิ์' },
+    acc_ring: { id: 'acc_ring', name: 'แหวนทองคำ', icon: '💍', type: 'accessory', price: 1000, stats: { atk: 3, spd: 2 }, desc: 'แหวนทองคำแท้' },
+    acc_buddha: { id: 'acc_buddha', name: 'พระพุทธรูป', icon: '🛕', type: 'accessory', price: 500, stats: { def: 2, atk: 2 }, desc: 'พระพุทธรูปจำลอง' },
+
+    wood: { id: 'wood', name: 'ไม้', icon: '🪵', type: 'material', price: 5, desc: 'ไม้ไม้ไผ่' },
+    stone: { id: 'stone', name: 'หิน', icon: '🪨', type: 'material', price: 5, desc: 'หินก้อนเล็ก' },
+    herb: { id: 'herb', name: 'สมุนไพร', icon: '🌿', type: 'material', price: 20, desc: 'สมุนไพรไทย' },
+    fish: { id: 'fish', name: 'ปลา', icon: '🐟', type: 'material', price: 25, desc: 'ปลาน้ำจืด' }
+};
+
+// ============ SHOP ITEMS ============
+const SHOP_ITEMS = [
+    'rice', 'somtam', 'tomyum', 'mango', 'coconut', 'padthai',
+    'hat_farmer', 'hat_school', 'hat_warrior',
+    'shirt_farmer', 'shirt_silk', 'shirt_armor',
+    'weapon_stick', 'weapon_machete', 'weapon_sword', 'weapon_spear', 'weapon_axe',
+    'acc_amulet', 'acc_ring', 'acc_buddha'
+];
+
+// ============ ENEMY DATABASE ============
+const ENEMIES = [
+    { id: 'snake', name: 'งูเห่า', icon: '🐍', hp: 40, maxHp: 40, atk: 8, def: 1, exp: 15, money: 20 },
+    { id: 'rat', name: 'หนูใหญ่', icon: '🐀', hp: 25, maxHp: 25, atk: 5, def: 0, exp: 8, money: 10 },
+    { id: 'dog', name: 'หมาจร', icon: '🐕', hp: 60, maxHp: 60, atk: 12, def: 3, exp: 25, money: 35 },
+    { id: 'monkey', name: 'ลิงป่า', icon: '🐒', hp: 50, maxHp: 50, atk: 15, def: 2, exp: 30, money: 40 },
+    { id: 'buffalo', name: 'ควายดุ', icon: '🐃', hp: 100, maxHp: 100, atk: 20, def: 8, exp: 60, money: 80 },
+    { id: 'tiger', name: 'เสือโคร่ง', icon: '🐅', hp: 150, maxHp: 150, atk: 35, def: 10, exp: 120, money: 200 },
+    { id: 'bandit', name: 'โจรป่า', icon: '🥷', hp: 80, maxHp: 80, atk: 18, def: 5, exp: 50, money: 100 },
+    { id: 'ghost', name: 'ผีป่า', icon: '👻', hp: 70, maxHp: 70, atk: 22, def: 3, exp: 55, money: 60 }
+];
+
+// ============ MAP GENERATION ============
+function generateMap() {
+    const map = [];
+    for (let y = 0; y < CONFIG.MAP_HEIGHT; y++) {
+        map[y] = [];
+        for (let x = 0; x < CONFIG.MAP_WIDTH; x++) {
+            const noise = Math.sin(x * 0.1) * Math.cos(y * 0.1) + Math.random() * 0.3;
+            if (noise > 0.6) map[y][x] = 'water';
+            else if (noise > 0.4) map[y][x] = 'sand';
+            else if (noise > 0.2) map[y][x] = 'path';
+            else map[y][x] = 'grass';
+        }
+    }
+    return map;
+}
+const gameMap = generateMap();
+
+// ============ NPC SETUP ============
+function initNPCs() {
+    state.npcs = [
+        { x: 15, y: 10, name: 'ยายสม', icon: '👵', dialogue: [
+            'ยินดีต้อนรับสู่หมู่บ้านของเรา ลูกเอ้ย!',
+            'ที่นี่มีทุกอย่างที่เจ้าต้องการ',
+            'ลองไปหาลุงแก้วที่ร้านค้าดูสิ อยู่ทางขวามือ'
+        ], quest: 'q1' },
+        { x: 25, y: 12, name: 'ลุงแก้ว', icon: '👴', dialogue: [
+            'สวัสดีหนุ่มน้อย! มาซื้อของหรือ?',
+            'ถ้าไม่มีเงิน ลองไปเก็บผักจากสวนดู',
+            'หรือจะไปต่อสู้กับสัตว์ร้ายก็ได้นะ'
+        ], shop: true },
+        { x: 18, y: 20, name: 'พี่นก', icon: '🧑‍🌾', dialogue: [
+            'นาข้าวของฉันกำลังจะเก็บเกี่ยวแล้ว',
+            'เจ้าอยากลองทำนาดูไหม?',
+            'ทำงานหนักแล้วจะได้เงินเยอะ!'
+        ], work: { type: 'farm', reward: 30, energy: 10 } },
+        { x: 30, y: 18, name: 'ครูแดง', icon: '👩‍🏫', dialogue: [
+            'การศึกษาสำคัญนะลูก',
+            'ถ้าเจ้าเก่งขึ้น จะได้เรียนสกิลใหม่ๆ',
+            'ไปต่อสู้เพื่อสะสมประสบการณ์สิ!'
+        ] },
+        { x: 8, y: 15, name: 'พระอาจารย์', icon: '🧘', dialogue: [
+            'สาธุ... สติเป็นสำคัญ',
+            'การต่อสู้ไม่ใช่ทางออกที่ดีที่สุด',
+            'แต่ถ้าจำเป็น จงต่อสู้ด้วยสติ'
+        ], heal: true },
+        { x: 35, y: 25, name: 'ป้าขายผลไม้', icon: '👩‍🌾', dialogue: [
+            'ผลไม้สดๆ จากสวนเลยจ้า!',
+            'มะม่วงหวานฉ่ำ มะพร้าวน้ำหอม',
+            'ซื้อไปกินเล่นก็ได้นะ'
+        ] }
+    ];
+}
+
+// ============ OBJECT SETUP ============
+function initObjects() {
+    state.objects = [
+        { x: 12, y: 8, type: 'house', icon: '🏠', interact: 'home' },
+        { x: 22, y: 10, type: 'shop', icon: '🏪', interact: 'shop' },
+        { x: 5, y: 5, type: 'temple', icon: '⛩️', interact: 'temple' },
+        { x: 35, y: 15, type: 'school', icon: '🏫', interact: 'school' },
+        { x: 20, y: 22, type: 'tree', icon: '🌴', resource: 'wood', amount: 3 },
+        { x: 21, y: 23, type: 'tree', icon: '🌴', resource: 'wood', amount: 3 },
+        { x: 10, y: 25, type: 'rock', icon: '🪨', resource: 'stone', amount: 2 },
+        { x: 32, y: 20, type: 'garden', icon: '🥬', resource: 'herb', amount: 5 },
+        { x: 33, y: 21, type: 'garden', icon: '🥬', resource: 'herb', amount: 5 },
+        { x: 28, y: 8, type: 'pond', icon: '🎣', resource: 'fish', amount: 4 },
+        { x: 14, y: 14, type: 'decoration', icon: '🌸' },
+        { x: 16, y: 16, type: 'decoration', icon: '🌺' },
+        { x: 24, y: 20, type: 'decoration', icon: '🌴' },
+        { x: 30, y: 25, type: 'decoration', icon: '🌳' }
+    ];
+}
+
+// ============ CAMERA ============
+const camera = { x: 0, y: 0 };
+function updateCamera() {
+    const viewW = Math.ceil(canvas.width / CONFIG.TILE_SIZE);
+    const viewH = Math.ceil(canvas.height / CONFIG.TILE_SIZE);
+    camera.x = Math.max(0, Math.min(state.player.x - viewW / 2, CONFIG.MAP_WIDTH - viewW));
+    camera.y = Math.max(0, Math.min(state.player.y - viewH / 2, CONFIG.MAP_HEIGHT - viewH));
+}
+
+// ============ RENDERING ============
+function render() {
+    const w = canvas.width = window.innerWidth;
+    const h = canvas.height = window.innerHeight - 70;
+    ctx.imageSmoothingEnabled = false;
+    updateCamera();
+
+    const timeOfDay = (state.time % CONFIG.DAY_LENGTH) / CONFIG.DAY_LENGTH;
+    const isNight = timeOfDay > 0.75 || timeOfDay < 0.25;
+    const brightness = isNight ? 0.4 : 1.0;
+
+    const viewW = Math.ceil(w / CONFIG.TILE_SIZE) + 2;
+    const viewH = Math.ceil(h / CONFIG.TILE_SIZE) + 2;
+
+    for (let dy = -1; dy < viewH; dy++) {
+        for (let dx = -1; dx < viewW; dx++) {
+            const mx = Math.floor(camera.x + dx);
+            const my = Math.floor(camera.y + dy);
+            if (mx < 0 || mx >= CONFIG.MAP_WIDTH || my < 0 || my >= CONFIG.MAP_HEIGHT) continue;
+
+            const tile = gameMap[my][mx];
+            const px = (dx - (camera.x % 1)) * CONFIG.TILE_SIZE;
+            const py = (dy - (camera.y % 1)) * CONFIG.TILE_SIZE;
+
+            let color = CONFIG.COLORS[tile] || CONFIG.COLORS.grass;
+            ctx.fillStyle = isNight ? darkenColor(color, 0.4) : color;
+            ctx.fillRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+            ctx.strokeRect(px, py, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+        }
+    }
+
+    state.objects.forEach(obj => {
+        if (obj.x >= camera.x - 1 && obj.x <= camera.x + viewW &&
+            obj.y >= camera.y - 1 && obj.y <= camera.y + viewH) {
+            const px = (obj.x - camera.x) * CONFIG.TILE_SIZE;
+            const py = (obj.y - camera.y) * CONFIG.TILE_SIZE;
+            ctx.font = '24px serif';
+            ctx.textAlign = 'center';
+            ctx.globalAlpha = brightness;
+            ctx.fillText(obj.icon, px + CONFIG.TILE_SIZE / 2, py + CONFIG.TILE_SIZE * 0.8);
+            ctx.globalAlpha = 1;
+        }
+    });
+
+    state.npcs.forEach(npc => {
+        if (npc.x >= camera.x - 1 && npc.x <= camera.x + viewW &&
+            npc.y >= camera.y - 1 && npc.y <= camera.y + viewH) {
+            const px = (npc.x - camera.x) * CONFIG.TILE_SIZE;
+            const py = (npc.y - camera.y) * CONFIG.TILE_SIZE;
+            ctx.font = '24px serif';
+            ctx.textAlign = 'center';
+            ctx.globalAlpha = brightness;
+            ctx.fillText(npc.icon, px + CONFIG.TILE_SIZE / 2, py + CONFIG.TILE_SIZE * 0.8);
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillStyle = isNight ? '#aaa' : '#fff';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeText(npc.name, px + CONFIG.TILE_SIZE / 2, py - 5);
+            ctx.fillText(npc.name, px + CONFIG.TILE_SIZE / 2, py - 5);
+            ctx.globalAlpha = 1;
+        }
+    });
+
+    const playerPx = (state.player.x - camera.x) * CONFIG.TILE_SIZE;
+    const playerPy = (state.player.y - camera.y) * CONFIG.TILE_SIZE;
+    ctx.font = '28px serif';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = brightness;
+    ctx.fillText('🧑‍🌾', playerPx + CONFIG.TILE_SIZE / 2, playerPy + CONFIG.TILE_SIZE * 0.85);
+    ctx.globalAlpha = 1;
+
+    state.particles = state.particles.filter(p => {
+        p.life--;
+        if (p.life <= 0) return false;
+        const px = (p.x - camera.x) * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2;
+        const py = (p.y - camera.y) * CONFIG.TILE_SIZE + CONFIG.TILE_SIZE / 2 - (30 - p.life) * 0.5;
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = p.color;
+        ctx.fillText(p.text, px, py);
+        return true;
+    });
+
+    drawMiniMap();
+}
+
+function drawMiniMap() {
+    const mm = document.getElementById('mini-map');
+    const mmCtx = mm.getContext('2d');
+    mm.width = 120; mm.height = 120;
+    const scale = 120 / CONFIG.MAP_WIDTH;
+
+    for (let y = 0; y < CONFIG.MAP_HEIGHT; y++) {
+        for (let x = 0; x < CONFIG.MAP_WIDTH; x++) {
+            mmCtx.fillStyle = CONFIG.COLORS[gameMap[y][x]] || CONFIG.COLORS.grass;
+            mmCtx.fillRect(x * scale, y * scale, scale, scale);
+        }
+    }
+    mmCtx.fillStyle = '#ff0000';
+    mmCtx.fillRect(state.player.x * scale - 2, state.player.y * scale - 2, 4, 4);
+    mmCtx.strokeStyle = '#fff';
+    mmCtx.lineWidth = 1;
+    mmCtx.strokeRect(camera.x * scale, camera.y * scale, 
+        (canvas.width / CONFIG.TILE_SIZE) * scale, 
+        (canvas.height / CONFIG.TILE_SIZE) * scale);
+}
+
+function darkenColor(hex, factor) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgb(${Math.floor(r * factor)}, ${Math.floor(g * factor)}, ${Math.floor(b * factor)})`;
+}
+
+function spawnParticle(x, y, text, color = '#ffd700') {
+    state.particles.push({ x, y, text, color, life: 30 });
+}
+
+// ============ INPUT HANDLING ============
+const keys = {};
+document.addEventListener('keydown', (e) => {
+    keys[e.key] = true;
+    if (state.inDialogue && e.key === ' ') {
+        advanceDialogue();
+        return;
+    }
+    handleMovement();
+});
+document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+let moveCooldown = 0;
+function handleMovement() {
+    if (moveCooldown > 0 || state.inDialogue || state.currentPanel) return;
+
+    let dx = 0, dy = 0;
+    if (keys['ArrowUp'] || keys['w'] || keys['W']) { dy = -1; state.player.direction = 'up'; }
+    if (keys['ArrowDown'] || keys['s'] || keys['S']) { dy = 1; state.player.direction = 'down'; }
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) { dx = -1; state.player.direction = 'left'; }
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) { dx = 1; state.player.direction = 'right'; }
+
+    if (dx !== 0 || dy !== 0) {
+        const newX = state.player.x + dx;
+        const newY = state.player.y + dy;
+        if (newX < 0 || newX >= CONFIG.MAP_WIDTH || newY < 0 || newY >= CONFIG.MAP_HEIGHT) return;
+
+        const blocked = state.objects.some(o => o.x === newX && o.y === newY && o.type === 'house');
+        if (blocked) return;
+
+        state.player.x = newX;
+        state.player.y = newY;
+        moveCooldown = 8;
+
+        checkNPCInteraction();
+        checkObjectInteraction();
+
+        if (Math.random() < 0.02) startBattle();
+    }
+}
+
+function checkNPCInteraction() {
+    const npc = state.npcs.find(n => 
+        Math.abs(n.x - state.player.x) <= 1 && 
+        Math.abs(n.y - state.player.y) <= 1
+    );
+    if (npc && npc.dialogue) {
+        startDialogue(npc);
+    }
+}
+
+function checkObjectInteraction() {
+    const obj = state.objects.find(o => o.x === state.player.x && o.y === state.player.y);
+    if (obj && obj.resource) harvestResource(obj);
+}
+
+// ============ DIALOGUE SYSTEM ============
+function startDialogue(npc) {
+    state.inDialogue = true;
+    state.dialogueQueue = [...npc.dialogue];
+    document.getElementById('dialogue-speaker').textContent = npc.name;
+    advanceDialogue();
+
+    // นับการพูดคุยกับ NPC
+    if (!state.npcTalked.has(npc.name)) {
+        state.npcTalked.add(npc.name);
+        updateQuest('q1', 1);
+    }
+
+    // รักษาพลังชีวิต
+    if (npc.heal) {
+        state.player.hp = state.player.maxHp;
+        state.player.energy = state.player.maxEnergy;
+        showNotification('🙏 พระอาจารย์รักษาพลังชีวิตให้เต็ม!');
+        updateHUD();
+    }
+}
+
+function advanceDialogue() {
+    if (state.dialogueQueue.length === 0) {
+        state.inDialogue = false;
+        document.getElementById('dialogue-box').classList.remove('active');
+        return;
+    }
+    const text = state.dialogueQueue.shift();
+    document.getElementById('dialogue-text').textContent = text;
+    document.getElementById('dialogue-box').classList.add('active');
+}
+
+// ============ RESOURCE HARVESTING ============
+function harvestResource(obj) {
+    if (state.player.energy < 3) {
+        showNotification('⚡ พลังงานไม่พอ!');
+        return;
+    }
+    state.player.energy -= 3;
+    obj.amount--;
+
+    const item = ITEMS[obj.resource];
+    addToInventory(obj.resource, 1);
+    spawnParticle(obj.x, obj.y, `+1 ${item.name}`, '#90EE90');
+    showNotification(`📦 ได้รับ ${item.name}!`);
+
+    if (obj.amount <= 0) {
+        obj.icon = '❌';
+        obj.resource = null;
+        setTimeout(() => {
+            obj.icon = obj.type === 'tree' ? '🌴' : obj.type === 'rock' ? '🪨' : obj.type === 'garden' ? '🥬' : '🎣';
+            obj.resource = obj.type === 'tree' ? 'wood' : obj.type === 'rock' ? 'stone' : obj.type === 'garden' ? 'herb' : 'fish';
+            obj.amount = 3 + Math.floor(Math.random() * 3);
+        }, 10000);
+    }
+
+    updateQuest('q2', 1);
+    updateHUD();
+}
+
+// ============ INVENTORY SYSTEM ============
+function addToInventory(itemId, amount) {
+    const existing = state.inventory.find(i => i.id === itemId);
+    if (existing) {
+        existing.amount += amount;
+    } else {
+        state.inventory.push({ id: itemId, amount: amount });
+    }
+    updateInventoryUI();
+}
+
+function removeFromInventory(itemId, amount) {
+    const item = state.inventory.find(i => i.id === itemId);
+    if (item) {
+        item.amount -= amount;
+        if (item.amount <= 0) {
+            state.inventory = state.inventory.filter(i => i.id !== itemId);
+        }
+    }
+    updateInventoryUI();
+}
+
+function updateInventoryUI() {
+    const grid = document.getElementById('inventory-grid');
+    grid.innerHTML = '';
+
+    for (let i = 0; i < 24; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'inv-slot';
+
+        if (i < state.inventory.length) {
+            const item = state.inventory[i];
+            const itemData = ITEMS[item.id];
+            slot.innerHTML = `<span style="font-size:28px">${itemData.icon}</span><span class="item-count">${item.amount}</span>`;
+            slot.title = `${itemData.name} - ${itemData.desc}`;
+            slot.onclick = () => useItem(item.id);
+        }
+
+        grid.appendChild(slot);
+    }
+
+    const totalItems = state.inventory.reduce((sum, i) => sum + i.amount, 0);
+    const badge = document.getElementById('inv-badge');
+    badge.textContent = totalItems;
+    badge.style.display = totalItems > 0 ? 'block' : 'none';
+}
+
+function useItem(itemId) {
+    const item = ITEMS[itemId];
+    if (!item) return;
+
+    if (item.type === 'food') {
+        state.player.hp = Math.min(state.player.maxHp, state.player.hp + item.heal);
+        state.player.energy = Math.min(state.player.maxEnergy, state.player.energy + item.heal / 2);
+        removeFromInventory(itemId, 1);
+        showNotification(`🍽️ กิน${item.name} พลังชีวิต +${item.heal}`);
+        updateHUD();
+    }
+}
+
+// ============ EQUIPMENT SYSTEM ============
+function equipItem(itemId) {
+    const item = ITEMS[itemId];
+    if (!item || !['head', 'body', 'weapon', 'accessory'].includes(item.type)) return;
+
+    if (state.player.equipped[item.type]) {
+        addToInventory(state.player.equipped[item.type], 1);
+    }
+
+    state.player.equipped[item.type] = itemId;
+    removeFromInventory(itemId, 1);
+
+    recalcStats();
+    updateEquipmentUI();
+    showNotification(`👕 สวมใส่ ${item.name}`);
+}
+
+function recalcStats() {
+    let atk = 5, def = 2, spd = 3;
+    Object.values(state.player.equipped).forEach(itemId => {
+        const item = ITEMS[itemId];
+        if (item && item.stats) {
+            atk += item.stats.atk || 0;
+            def += item.stats.def || 0;
+            spd += item.stats.spd || 0;
+        }
+    });
+    state.player.stats = { atk, def, spd };
+}
+
+function updateEquipmentUI() {
+    const slots = ['head', 'body', 'weapon', 'accessory'];
+    slots.forEach(slot => {
+        const itemId = state.player.equipped[slot];
+        const el = document.getElementById(`equip-${slot}`);
+        if (itemId) {
+            const item = ITEMS[itemId];
+            el.innerHTML = `<span style="font-size:24px">${item.icon}</span><br><small>${item.name}</small>`;
+            el.parentElement.classList.add('filled');
+        } else {
+            el.textContent = '-';
+            el.parentElement.classList.remove('filled');
+        }
+    });
+
+    const stats = state.player.stats;
+    document.getElementById('equip-stats').textContent = 
+        `พลังโจมตี: ${stats.atk} | ป้องกัน: ${stats.def} | ความเร็ว: ${stats.spd}`;
+
+    // แสดงไอเทมที่สวมใส่ได้ในกระเป๋า
+    const equipGrid = document.getElementById('equip-inventory');
+    equipGrid.innerHTML = '';
+    const equipable = state.inventory.filter(i => {
+        const item = ITEMS[i.id];
+        return item && ['head', 'body', 'weapon', 'accessory'].includes(item.type);
+    });
+
+    for (let i = 0; i < 12; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'inv-slot';
+        if (i < equipable.length) {
+            const item = equipable[i];
+            const itemData = ITEMS[item.id];
+            slot.innerHTML = `<span style="font-size:28px">${itemData.icon}</span><span class="item-count">${item.amount}</span>`;
+            slot.title = `${itemData.name} - ${itemData.desc}`;
+            slot.onclick = () => equipItem(item.id);
+        }
+        equipGrid.appendChild(slot);
+    }
+}
+
+// ============ SHOP SYSTEM ============
+function initShop() {
+    const grid = document.getElementById('shop-grid');
+    grid.innerHTML = '';
+
+    SHOP_ITEMS.forEach(itemId => {
+        const item = ITEMS[itemId];
+        const div = document.createElement('div');
+        div.className = 'shop-item';
+
+        let statsText = '';
+        if (item.stats) {
+            const stats = [];
+            if (item.stats.atk) stats.push(`โจมตี +${item.stats.atk}`);
+            if (item.stats.def) stats.push(`ป้องกัน +${item.stats.def}`);
+            if (item.stats.spd) stats.push(`ความเร็ว +${item.stats.spd}`);
+            statsText = `<div class="item-stats">${stats.join(' | ')}</div>`;
+        }
+
+        div.innerHTML = `
+            <div class="item-icon">${item.icon}</div>
+            <div class="item-name">${item.name}</div>
+            <div class="item-price">💰 ${item.price} บาท</div>
+            ${statsText}
+        `;
+        div.onclick = () => buyItem(itemId);
+        grid.appendChild(div);
+    });
+
+    document.getElementById('shop-money').textContent = state.player.money;
+}
+
+function buyItem(itemId) {
+    const item = ITEMS[itemId];
+    if (state.player.money < item.price) {
+        showNotification('💸 เงินไม่พอ!');
+        return;
+    }
+    state.player.money -= item.price;
+    addToInventory(itemId, 1);
+    showNotification(`🛒 ซื้อ ${item.name} สำเร็จ!`);
+    document.getElementById('shop-money').textContent = state.player.money;
+    updateHUD();
+}
+
+// ============ SKILLS SYSTEM ============
+function updateSkillsUI() {
+    const list = document.getElementById('skills-list');
+    list.innerHTML = '';
+
+    state.skills.forEach(skill => {
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#fff8e8;border:2px solid #c9a84c;border-radius:10px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;';
+
+        const isUnlocked = skill.unlocked || state.player.level >= (skill.reqLevel || 0);
+        const status = isUnlocked ? '🔓 ปลดล็อคแล้ว' : `🔒 ต้องเลเวล ${skill.reqLevel}`;
+
+        div.innerHTML = `
+            <div>
+                <strong style="font-size:16px">${skill.name}</strong>
+                <div style="font-size:12px;color:#666">พลังโจมตี: ${skill.damage} | พลังงาน: ${skill.cost}</div>
+                <div style="font-size:11px;color:${isUnlocked ? 'green' : 'red'}">${status}</div>
+            </div>
+            <div style="font-size:30px">⚔️</div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+// ============ QUEST SYSTEM ============
+function updateQuestsUI() {
+    const list = document.getElementById('quests-list');
+    list.innerHTML = '';
+
+    state.quests.forEach(quest => {
+        const div = document.createElement('div');
+        div.style.cssText = `background:${quest.completed ? '#d4edda' : '#fff8e8'};border:2px solid ${quest.completed ? '#28a745' : '#c9a84c'};border-radius:10px;padding:12px;margin-bottom:10px;`;
+
+        const progress = Math.min(100, (quest.current / quest.target) * 100);
+
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                <strong>${quest.title}</strong>
+                <span style="color:#b8860b;font-weight:bold">💰 ${quest.reward}</span>
+            </div>
+            <div style="font-size:13px;margin-bottom:5px">${quest.desc}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;height:10px;background:#2a1a0a;border-radius:5px;overflow:hidden">
+                    <div style="width:${progress}%;height:100%;background:${quest.completed ? '#28a745' : '#f39c12'};transition:width 0.3s"></div>
+                </div>
+                <span style="font-size:12px;min-width:60px;text-align:right">${quest.current}/${quest.target}</span>
+            </div>
+            ${quest.completed ? '<div style="color:green;font-weight:bold;margin-top:5px">✅ เสร็จสิ้น!</div>' : ''}
+        `;
+        list.appendChild(div);
+    });
+
+    // อัปเดต quest tracker
+    const activeQuest = state.quests.find(q => !q.completed);
+    if (activeQuest) {
+        document.getElementById('quest-desc').textContent = activeQuest.desc;
+        document.getElementById('quest-progress').style.width = Math.min(100, (activeQuest.current / activeQuest.target) * 100) + '%';
+    }
+
+    // อัปเดต badge
+    const completedCount = state.quests.filter(q => q.completed).length;
+    const badge = document.getElementById('quest-badge');
+    badge.textContent = completedCount;
+    badge.style.display = completedCount > 0 ? 'block' : 'none';
+}
+
+function updateQuest(questId, amount) {
+    const quest = state.quests.find(q => q.id === questId);
+    if (!quest || quest.completed) return;
+
+    quest.current = Math.min(quest.target, quest.current + amount);
+
+    if (quest.current >= quest.target) {
+        quest.completed = true;
+        state.player.money += quest.reward;
+        showNotification(`🎉 ภารกิจ "${quest.title}" เสร็จสิ้น! ได้รับ ${quest.reward} บาท`);
+        updateHUD();
+    }
+
+    updateQuestsUI();
+}
+
+// ============ BATTLE SYSTEM ============
+const battle = {
+    enemy: null,
+    turn: 'player',
+    defending: false,
+
+    init() {
+        const possible = ENEMIES.filter(e => e.hp <= 50 + state.player.level * 20);
+        this.enemy = { ...possible[Math.floor(Math.random() * possible.length)] };
+        this.turn = 'player';
+        this.defending = false;
+
+        document.getElementById('enemy-sprite').textContent = this.enemy.icon;
+        document.getElementById('enemy-name').textContent = this.enemy.name;
+        document.getElementById('enemy-hp').style.width = '100%';
+        document.getElementById('enemy-hp-text').textContent = `${this.enemy.hp}/${this.enemy.maxHp}`;
+
+        document.getElementById('player-sprite').textContent = '🧑‍🌾';
+        document.getElementById('player-name').textContent = `คุณ (Lv.${state.player.level})`;
+        document.getElementById('player-hp').style.width = (state.player.hp / state.player.maxHp * 100) + '%';
+        document.getElementById('player-hp-text').textContent = `${state.player.hp}/${state.player.maxHp}`;
+
+        document.getElementById('battle-log').textContent = `ศึกเริ่มต้น! ${this.enemy.name} ปรากฏตัว!`;
+        document.getElementById('battle-screen').classList.add('active');
+    },
+
+    action(type) {
+        if (this.turn !== 'player') return;
+
+        let damage = 0;
+        let log = '';
+
+        switch(type) {
+            case 'attack':
+                damage = Math.max(1, state.player.stats.atk + Math.floor(Math.random() * 5) - this.enemy.def);
+                log = `คุณโจมตี ${this.enemy.name} ด้วยหมัดเด็ด! ได้รับความเสียหาย ${damage}!`;
+                break;
+            case 'skill':
+                const skill = state.skills.find(s => s.unlocked && s.cost <= state.player.energy);
+                if (skill) {
+                    damage = skill.damage + state.player.stats.atk;
+                    state.player.energy -= skill.cost;
+                    log = `คุณใช้ ${skill.name}! ได้รับความเสียหาย ${damage}!`;
+                } else {
+                    damage = state.player.stats.atk;
+                    log = `พลังงานไม่พอ! โจมตีธรรมดาแทน ได้รับความเสียหาย ${damage}`;
+                }
+                break;
+            case 'defend':
+                this.defending = true;
+                log = 'คุณตั้งท่าป้องกัน! ความเสียหายลดลงครึ่งหนึ่ง';
+                break;
+        }
+
+        if (type !== 'defend') {
+            this.enemy.hp = Math.max(0, this.enemy.hp - damage);
+            document.getElementById('enemy-hp').style.width = (this.enemy.hp / this.enemy.maxHp * 100) + '%';
+            document.getElementById('enemy-hp-text').textContent = `${this.enemy.hp}/${this.enemy.maxHp}`;
+        }
+
+        document.getElementById('battle-log').textContent = log;
+
+        if (this.enemy.hp <= 0) {
+            this.win();
+            return;
+        }
+
+        this.turn = 'enemy';
+        setTimeout(() => this.enemyTurn(), 800);
+    },
+
+    enemyTurn() {
+        if (!this.enemy || this.enemy.hp <= 0) return;
+
+        let damage = Math.max(1, this.enemy.atk + Math.floor(Math.random() * 3) - state.player.stats.def);
+        if (this.defending) damage = Math.floor(damage / 2);
+
+        state.player.hp = Math.max(0, state.player.hp - damage);
+        document.getElementById('player-hp').style.width = (state.player.hp / state.player.maxHp * 100) + '%';
+        document.getElementById('player-hp-text').textContent = `${state.player.hp}/${state.player.maxHp}`;
+
+        document.getElementById('battle-log').textContent = `${this.enemy.name} โจมตีคุณ! ได้รับความเสียหาย ${damage}!`;
+
+        if (state.player.hp <= 0) {
+            this.lose();
+            return;
+        }
+
+        this.turn = 'player';
+        this.defending = false;
+    },
+
+    win() {
+        const exp = this.enemy.exp;
+        const money = this.enemy.money;
+
+        state.player.exp += exp;
+        state.player.money += money;
+        state.battleWon++;
+
+        showNotification(`🎉 ชนะ! ได้รับ ${exp} EXP และ ${money} บาท`);
+
+        // เช็คเลเวลอัป
+        if (state.player.exp >= state.player.maxExp) {
+            state.player.level++;
+            state.player.exp -= state.player.maxExp;
+            state.player.maxExp = Math.floor(state.player.maxExp * 1.5);
+            state.player.maxHp += 20;
+            state.player.hp = state.player.maxHp;
+            state.player.maxEnergy += 10;
+            state.player.energy = state.player.maxEnergy;
+
+            // ปลดล็อคสกิล
+            state.skills.forEach(s => {
+                if (state.player.level >= (s.reqLevel || 0)) s.unlocked = true;
+            });
+
+            showNotification(`⭐ เลเวลอัป! เลเวล ${state.player.level}!`);
+        }
+
+        updateQuest('q3', 1);
+        updateQuest('q4', money);
+        updateQuest('q5', state.player.level);
+        updateHUD();
+
+        setTimeout(() => {
+            document.getElementById('battle-screen').classList.remove('active');
+            this.enemy = null;
+        }, 1500);
+    },
+
+    lose() {
+        showNotification('💀 คุณแพ้! กลับไปพักฟื้นที่วัด...');
+        state.player.hp = 1;
+        state.player.energy = 1;
+        updateHUD();
+
+        setTimeout(() => {
+            document.getElementById('battle-screen').classList.remove('active');
+            this.enemy = null;
+        }, 2000);
+    },
+
+    flee() {
+        if (Math.random() < 0.5) {
+            showNotification('🏃 หนีสำเร็จ!');
+            document.getElementById('battle-screen').classList.remove('active');
+            this.enemy = null;
+        } else {
+            document.getElementById('battle-log').textContent = 'หนีไม่สำเร็จ!';
+            this.turn = 'enemy';
+            setTimeout(() => this.enemyTurn(), 800);
+        }
+    }
+};
+
+// ============ GAME CONTROLLER ============
+const game = {
+    togglePanel(panel) {
+        if (state.currentPanel === panel) {
+            this.closeModal();
+            return;
+        }
+
+        state.currentPanel = panel;
+
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+
+        if (panel === 'none') {
+            document.querySelector('.menu-btn[data-panel="none"]').classList.add('active');
+            return;
+        }
+
+        document.querySelector(`.menu-btn[data-panel="${panel}"]`)?.classList.add('active');
+        document.getElementById(`modal-${panel}`)?.classList.add('active');
+
+        if (panel === 'shop') initShop();
+        if (panel === 'skills') updateSkillsUI();
+        if (panel === 'quests') updateQuestsUI();
+        if (panel === 'equipment') updateEquipmentUI();
+    },
+
+    closeModal() {
+        state.currentPanel = null;
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.menu-btn[data-panel="none"]').classList.add('active');
+    },
+
+    findBattle() {
+        if (state.player.hp < 20) {
+            showNotification('❤️ พลังชีวิตน้อยเกินไป!');
+            return;
+        }
+        battle.init();
+    },
+
+    saveGame() {
+        const saveData = {
+            player: state.player,
+            inventory: state.inventory,
+            skills: state.skills,
+            quests: state.quests,
+            time: state.time,
+            day: state.day,
+            npcTalked: Array.from(state.npcTalked),
+            battleWon: state.battleWon
+        };
+        localStorage.setItem('thaiLifeRPG_save', JSON.stringify(saveData));
+        showNotification('💾 บันทึกเกมสำเร็จ!');
+    },
+
+    loadGame() {
+        const saved = localStorage.getItem('thaiLifeRPG_save');
+        if (!saved) {
+            showNotification('❌ ไม่พบข้อมูลบันทึก!');
+            return;
+        }
+
+        const data = JSON.parse(saved);
+        Object.assign(state.player, data.player);
+        state.inventory = data.inventory || [];
+        state.skills = data.skills || state.skills;
+        state.quests = data.quests || state.quests;
+        state.time = data.time || 0;
+        state.day = data.day || 1;
+        state.npcTalked = new Set(data.npcTalked || []);
+        state.battleWon = data.battleWon || 0;
+
+        recalcStats();
+        updateHUD();
+        updateInventoryUI();
+        updateQuestsUI();
+        showNotification('📂 โหลดเกมสำเร็จ!');
+    }
+};
+
+// ============ HUD UPDATE ============
+function updateHUD() {
+    document.getElementById('hp-bar').style.width = (state.player.hp / state.player.maxHp * 100) + '%';
+    document.getElementById('hp-text').textContent = `${state.player.hp}/${state.player.maxHp}`;
+    document.getElementById('energy-bar').style.width = (state.player.energy / state.player.maxEnergy * 100) + '%';
+    document.getElementById('energy-text').textContent = `${state.player.energy}/${state.player.maxEnergy}`;
+    document.getElementById('exp-bar').style.width = (state.player.exp / state.player.maxExp * 100) + '%';
+    document.getElementById('exp-text').textContent = `Lv.${state.player.level}`;
+    document.getElementById('money-display').textContent = `${state.player.money} บาท`;
+}
+
+// ============ NOTIFICATION ============
+let notifTimeout;
+function showNotification(text) {
+    const notif = document.getElementById('notification');
+    notif.textContent = text;
+    notif.classList.add('active');
+    clearTimeout(notifTimeout);
+    notifTimeout = setTimeout(() => notif.classList.remove('active'), 2500);
+}
+
+// ============ GAME LOOP ============
+function gameLoop() {
+    if (moveCooldown > 0) moveCooldown--;
+    state.time++;
+
+    // ฟื้นฟูพลังงานช้าๆ
+    if (state.time % 120 === 0 && state.player.energy < state.player.maxEnergy) {
+        state.player.energy++;
+        updateHUD();
+    }
+
+    // วันใหม่
+    if (state.time % CONFIG.DAY_LENGTH === 0) {
+        state.day++;
+        showNotification(`🌅 วันที่ ${state.day}`);
+    }
+
+    render();
+    requestAnimationFrame(gameLoop);
+}
+
+// ============ INITIALIZATION ============
+function init() {
+    initNPCs();
+    initObjects();
+    updateHUD();
+    updateInventoryUI();
+    updateQuestsUI();
+
+    // ให้ของเริ่มต้น
+    addToInventory('rice', 3);
+    addToInventory('weapon_stick', 1);
+
+    showNotification('🎮 ยินดีต้อนรับสู่ Thai Life RPG!');
+
+    gameLoop();
+}
+
+// เริ่มเกม
+init();
+</script>
+</body>
+</html>
