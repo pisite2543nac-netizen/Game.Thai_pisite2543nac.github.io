@@ -1,1193 +1,1770 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Code Duel - ศึกโค้ดสลับเทิร์น</title>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔️ ศึกสงคราม 5 อัศวิน ⚔️</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@400;700;900&display=swap');
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-    font-family: 'Kanit', sans-serif;
-    background: linear-gradient(180deg, #0a0a1a 0%, #1a0a2e 50%, #0d0520 100%);
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    width: 100vw;
-    color: #fff;
+    font-family: 'Prompt', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh; color: #fff; overflow-x: hidden;
 }
-#game-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 1000px;
-    aspect-ratio: 16/10;
-    background: #0d1117;
-    border: 3px solid #c9a84c;
-    border-radius: 12px;
-    overflow: hidden;
-}
-#game-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    image-rendering: pixelated;
-}
-#ui-layer {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    padding: 12px;
-}
-.hud-panel {
-    position: absolute;
-    background: rgba(20, 15, 10, 0.95);
-    border: 2px solid #c9a84c;
-    border-radius: 8px;
-    padding: 8px 12px;
-    pointer-events: auto;
-}
-/* Battle Arena */
-#battle-arena {
-    position: absolute;
-    top: 60px;
-    left: 0; right: 0;
-    height: 220px;
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
-    padding: 0 40px;
-}
-.char-card {
-    text-align: center;
-    position: relative;
-    transition: transform 0.3s;
-}
-.char-card.active {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 15px rgba(255,215,0,0.5));
-}
-.char-sprite {
-    width: 100px;
-    height: 100px;
-    image-rendering: pixelated;
-    margin-bottom: 6px;
-}
-.char-name {
-    font-size: 14px;
-    font-weight: bold;
-    color: #ffd700;
-    text-shadow: 0 0 5px rgba(0,0,0,0.8);
-}
-.char-class {
-    font-size: 11px;
-    color: #aaa;
-}
-.char-hp-bar {
-    width: 120px;
-    height: 14px;
-    background: #2a1a0a;
-    border: 2px solid #8b6914;
-    border-radius: 7px;
-    overflow: hidden;
-    margin: 4px auto;
-}
-.char-hp-fill {
-    height: 100%;
-    border-radius: 5px;
-    transition: width 0.5s;
-}
-.char-hp-text {
-    font-size: 11px;
-    color: #f0d78c;
-}
-/* Ultimate Gauge */
-.ult-gauge {
-    width: 120px;
-    height: 8px;
-    background: #1a0a2e;
-    border: 1px solid #9b59b6;
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 4px auto;
-}
-.ult-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #9b59b6, #e74c3c, #f39c12);
-    width: 0%;
-    transition: width 0.3s;
-}
-.ult-text {
-    font-size: 10px;
-    color: #e74c3c;
-    font-weight: bold;
-}
-/* VS */
-.vs-badge {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 32px;
-    font-weight: bold;
-    color: #c9a84c;
-    text-shadow: 0 0 20px rgba(201,168,76,0.5);
-}
-/* Turn Indicator */
-#turn-indicator {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(201,168,76,0.2);
-    border: 2px solid #c9a84c;
-    border-radius: 20px;
-    padding: 6px 20px;
-    font-size: 14px;
-    font-weight: bold;
-    color: #ffd700;
-}
-/* Code Challenge Area */
-#challenge-area {
-    position: absolute;
-    top: 290px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 85%;
-    max-width: 700px;
-    background: #161b22;
-    border: 2px solid #30363d;
-    border-radius: 10px;
-    padding: 16px;
-    display: none;
-}
-#challenge-area.active { display: block; pointer-events: auto; }
-.challenge-title {
-    font-size: 13px;
-    color: #58a6ff;
-    margin-bottom: 8px;
-    text-align: center;
-}
-.challenge-desc {
-    font-size: 12px;
-    color: #aaa;
-    margin-bottom: 12px;
-    text-align: center;
-}
-#code-display {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 15px;
-    line-height: 1.8;
-    background: #0d1117;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 10px;
-}
-.code-line { display: flex; gap: 8px; }
-.line-num { color: #484f58; min-width: 24px; text-align: right; font-size: 12px; }
-.code-text { color: #e6edf3; white-space: pre; }
-.code-text .correct { color: #3fb950; background: rgba(63,185,80,0.15); }
-.code-text .wrong { color: #f85149; background: rgba(248,81,73,0.2); text-decoration: underline; }
-.code-text .cursor { border-left: 2px solid #58a6ff; animation: blink 1s infinite; }
-@keyframes blink { 0%,100%{border-color:#58a6ff} 50%{border-color:transparent} }
-/* Timer */
-#challenge-timer {
-    text-align: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: #ffd700;
-    margin-bottom: 8px;
-}
-#challenge-timer.urgent { color: #e74c3c; animation: pulse 0.5s infinite; }
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
-/* Skill Selection */
-#skill-menu {
-    position: absolute;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    gap: 8px;
-    pointer-events: auto;
-}
-#skill-menu.active { display: flex; }
-.skill-btn {
-    background: linear-gradient(145deg, #5a3d1f, #3d2812);
-    border: 2px solid #c9a84c;
-    border-radius: 10px;
-    padding: 10px 14px;
-    color: #f0d78c;
-    font-size: 12px;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: 'Kanit', sans-serif;
-    transition: all 0.2s;
-    text-align: center;
-    min-width: 90px;
-}
-.skill-btn:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(201,168,76,0.3); }
-.skill-btn.ultimate {
-    border-color: #e74c3c;
-    background: linear-gradient(145deg, #8b1a1a, #5a0f0f);
-    color: #ffd700;
-}
-.skill-btn.ultimate:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-.skill-btn .skill-key {
-    display: block;
-    font-size: 18px;
-    margin-bottom: 2px;
-}
-.skill-btn .skill-name {
-    font-size: 11px;
-}
-/* Battle Log */
-#battle-log {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
-    height: 60px;
-    background: rgba(20, 15, 10, 0.9);
-    border: 1px solid #8b6914;
-    border-radius: 6px;
-    padding: 6px 10px;
-    overflow-y: auto;
-    font-size: 12px;
-    color: #f0d78c;
-    line-height: 1.5;
-}
-#battle-log .log-damage { color: #e74c3c; }
-#battle-log .log-heal { color: #2ecc71; }
-#battle-log .log-buff { color: #f39c12; }
-#battle-log .log-ultimate { color: #ffd700; font-weight: bold; }
-/* Damage Animation */
-.damage-float {
-    position: absolute;
-    font-size: 28px;
-    font-weight: bold;
-    animation: float-up 1s ease-out forwards;
-    pointer-events: none;
-    z-index: 100;
-}
-@keyframes float-up {
-    0% { transform: translateY(0) scale(1); opacity: 1; }
-    100% { transform: translateY(-60px) scale(1.3); opacity: 0; }
-}
-/* Start Screen */
-#start-screen {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(10, 5, 20, 0.95);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 300;
-    pointer-events: auto;
-}
-#start-screen.hidden { display: none; }
-.game-title {
-    font-size: 48px;
-    font-weight: bold;
-    color: #ffd700;
-    text-shadow: 0 0 30px rgba(255,215,0,0.5);
-    margin-bottom: 8px;
-}
-.game-subtitle {
-    font-size: 18px;
-    color: #c9a84c;
-    margin-bottom: 30px;
-}
-.char-select {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 24px;
-}
-.char-option {
-    background: linear-gradient(145deg, #2d1f12, #1a1208);
-    border: 2px solid #8b6914;
-    border-radius: 12px;
-    padding: 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 160px;
-}
-.char-option:hover { transform: translateY(-5px); border-color: #ffd700; }
-.char-option.selected { border-color: #ffd700; background: linear-gradient(145deg, #4a3320, #2d1f12); }
-.char-option .opt-sprite { width: 60px; height: 60px; margin: 0 auto 8px; }
-.char-option .opt-name { font-size: 14px; font-weight: bold; color: #ffd700; }
-.char-option .opt-class { font-size: 11px; color: #aaa; margin-bottom: 6px; }
-.char-option .opt-stats { font-size: 10px; color: #f0d78c; line-height: 1.4; }
-.start-btn {
-    background: linear-gradient(145deg, #27ae60, #1e8449);
-    color: white;
-    border: none;
-    padding: 14px 48px;
-    border-radius: 10px;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: 'Kanit', sans-serif;
-}
-.start-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(39,174,96,0.4); }
-/* Result Screen */
-#result-screen {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(10, 5, 20, 0.95);
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 300;
-    pointer-events: auto;
-}
-#result-screen.active { display: flex; }
-.result-title { font-size: 36px; font-weight: bold; color: #ffd700; margin-bottom: 16px; }
-.result-stats { font-size: 14px; color: #f0d78c; margin-bottom: 8px; line-height: 1.6; text-align: center; }
-.result-btn {
-    background: linear-gradient(145deg, #e74c3c, #c0392b);
-    color: white;
-    border: none;
-    padding: 12px 32px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: 'Kanit', sans-serif;
-    margin-top: 16px;
-}
-@media (max-width: 700px) {
-    .char-sprite { width: 70px; height: 70px; }
-    .skill-btn { padding: 8px 10px; min-width: 70px; font-size: 10px; }
-    .skill-btn .skill-key { font-size: 14px; }
-    .game-title { font-size: 32px; }
-}
+.stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.star { position: absolute; width: 2px; height: 2px; background: #fff; border-radius: 50%; animation: twinkle 2s infinite; }
+@keyframes twinkle { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+.game-title { text-align: center; padding: 20px; font-size: 2.5em; font-weight: 900; text-shadow: 0 0 20px #e94560, 0 0 40px #e94560; animation: titlePulse 2s infinite; position: relative; z-index: 10; }
+@keyframes titlePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.character-select { display: flex; justify-content: center; gap: 20px; padding: 20px; flex-wrap: wrap; position: relative; z-index: 10; }
+.character-card { width: 200px; height: 340px; background: linear-gradient(145deg, #2a2a4a, #1a1a2e); border: 3px solid #e94560; border-radius: 15px; padding: 15px; cursor: pointer; transition: all 0.3s; text-align: center; position: relative; overflow: hidden; }
+.character-card:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 0 30px #e94560; border-color: #ff6b6b; }
+.character-card.selected { border-color: #ffd700; box-shadow: 0 0 40px #ffd700; transform: scale(1.1); }
+.character-card.selected-enemy { border-color: #ff0000; box-shadow: 0 0 40px #ff0000; transform: scale(1.1); }
+.char-icon { font-size: 4em; margin: 10px 0; display: block; }
+.char-name { font-size: 1.2em; font-weight: 700; color: #ffd700; margin-bottom: 5px; }
+.char-class { font-size: 0.9em; color: #aaa; margin-bottom: 10px; }
+.char-stats { font-size: 0.8em; text-align: left; margin-top: 10px; }
+.stat-bar { height: 8px; background: #333; border-radius: 4px; margin: 3px 0; overflow: hidden; }
+.stat-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+.hp-fill { background: linear-gradient(90deg, #ff4444, #ff8888); }
+.atk-fill { background: linear-gradient(90deg, #ff8800, #ffcc00); }
+.def-fill { background: linear-gradient(90deg, #4488ff, #88ccff); }
+.spd-fill { background: linear-gradient(90deg, #44ff44, #88ff88); }
+.start-btn { display: block; margin: 20px auto; padding: 15px 50px; font-size: 1.5em; font-weight: 700; background: linear-gradient(45deg, #e94560, #ff6b6b); border: none; border-radius: 50px; color: #fff; cursor: pointer; transition: all 0.3s; box-shadow: 0 0 20px rgba(233,69,96,0.5); position: relative; z-index: 10; }
+.start-btn:hover { transform: scale(1.1); box-shadow: 0 0 40px rgba(233,69,96,0.8); }
+.start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.battle-arena { display: none; padding: 20px; position: relative; z-index: 10; }
+.battle-field { display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto; padding: 40px; background: rgba(0,0,0,0.3); border-radius: 20px; border: 2px solid #e94560; position: relative; }
+.fighter { text-align: center; position: relative; width: 250px; }
+.fighter-avatar { font-size: 6em; display: block; margin-bottom: 10px; transition: all 0.3s; }
+.fighter-name { font-size: 1.5em; font-weight: 700; margin-bottom: 5px; }
+.fighter-hp-bar { width: 200px; height: 25px; background: #333; border-radius: 12px; margin: 10px auto; overflow: hidden; border: 2px solid #fff; position: relative; }
+.fighter-hp-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ff8888); transition: width 0.5s; border-radius: 10px; }
+.fighter-hp-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 0.9em; font-weight: 700; text-shadow: 1px 1px 2px #000; }
+.fighter-energy-bar { width: 150px; height: 15px; background: #333; border-radius: 8px; margin: 5px auto; overflow: hidden; border: 1px solid #ffd700; }
+.fighter-energy-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ffee88); transition: width 0.5s; border-radius: 7px; }
+.fighter-energy-text { font-size: 0.8em; color: #ffd700; margin-top: 2px; }
+.skill-bar { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.skill-btn { padding: 12px 20px; font-size: 1em; font-weight: 700; border: 2px solid; border-radius: 10px; cursor: pointer; transition: all 0.2s; color: #fff; min-width: 120px; position: relative; overflow: hidden; }
+.skill-btn:hover:not(:disabled) { transform: scale(1.1); box-shadow: 0 0 20px currentColor; }
+.skill-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.skill-btn .skill-cost { font-size: 0.7em; display: block; margin-top: 2px; }
+.skill-1 { background: linear-gradient(45deg, #ff4444, #ff6666); border-color: #ff4444; }
+.skill-2 { background: linear-gradient(45deg, #ff8800, #ffaa00); border-color: #ff8800; }
+.skill-3 { background: linear-gradient(45deg, #4488ff, #66aaff); border-color: #4488ff; }
+.skill-4 { background: linear-gradient(45deg, #44ff44, #66ff66); border-color: #44ff44; }
+.skill-5 { background: linear-gradient(45deg, #aa44ff, #cc66ff); border-color: #aa44ff; }
+.ultimate-btn { padding: 15px 30px; font-size: 1.2em; font-weight: 900; background: linear-gradient(45deg, #ffd700, #ffaa00, #ff6600); border: 3px solid #ffd700; border-radius: 15px; color: #000; cursor: pointer; transition: all 0.3s; animation: ultimatePulse 1s infinite; margin-top: 15px; }
+.ultimate-btn:hover:not(:disabled) { transform: scale(1.15); box-shadow: 0 0 50px #ffd700; }
+.ultimate-btn:disabled { opacity: 0.3; cursor: not-allowed; animation: none; }
+@keyframes ultimatePulse { 0%,100% { box-shadow: 0 0 20px #ffd700; } 50% { box-shadow: 0 0 40px #ffd700, 0 0 60px #ffaa00; } }
+.turn-indicator { text-align: center; font-size: 1.5em; font-weight: 700; margin: 20px 0; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 10px; border: 2px solid #ffd700; }
+.turn-player { color: #4488ff; text-shadow: 0 0 10px #4488ff; }
+.turn-enemy { color: #ff4444; text-shadow: 0 0 10px #ff4444; }
+.battle-log { max-width: 800px; margin: 20px auto; padding: 15px; background: rgba(0,0,0,0.5); border-radius: 10px; border: 1px solid #e94560; max-height: 200px; overflow-y: auto; font-size: 0.9em; }
+.log-entry { padding: 5px; margin: 2px 0; border-radius: 5px; animation: logSlide 0.3s; }
+@keyframes logSlide { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.log-player { background: rgba(68,136,255,0.2); border-left: 3px solid #4488ff; }
+.log-enemy { background: rgba(255,68,68,0.2); border-left: 3px solid #ff4444; }
+.log-system { background: rgba(255,215,0,0.2); border-left: 3px solid #ffd700; }
+.log-ultimate { background: rgba(255,215,0,0.4); border-left: 3px solid #ffd700; font-weight: 700; }
+.game-over { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; }
+.game-over-text { font-size: 4em; font-weight: 900; margin-bottom: 20px; animation: gameOverPulse 1s infinite; }
+.game-over-win { color: #ffd700; text-shadow: 0 0 30px #ffd700; }
+.game-over-lose { color: #ff4444; text-shadow: 0 0 30px #ff4444; }
+@keyframes gameOverPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+.restart-btn { padding: 15px 40px; font-size: 1.3em; background: linear-gradient(45deg, #4488ff, #66aaff); border: none; border-radius: 10px; color: #fff; cursor: pointer; margin-top: 20px; transition: all 0.3s; }
+.restart-btn:hover { transform: scale(1.1); box-shadow: 0 0 30px #4488ff; }
+.damage-number { position: absolute; font-size: 3em; font-weight: 900; color: #ff4444; text-shadow: 2px 2px 4px #000; animation: damageFloat 1.5s forwards; z-index: 1001; }
+.heal-number { position: absolute; font-size: 2.5em; font-weight: 900; color: #44ff44; text-shadow: 2px 2px 4px #000; animation: damageFloat 1.5s forwards; z-index: 1001; }
+@keyframes damageFloat { 0% { opacity: 1; transform: translateY(0) scale(1); } 50% { opacity: 1; transform: translateY(-50px) scale(1.5); } 100% { opacity: 0; transform: translateY(-100px) scale(0.5); } }
+.shake { animation: shake 0.5s; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 10%,30%,50%,70%,90% { transform: translateX(-10px); } 20%,40%,60%,80% { transform: translateX(10px); } }
+.hit-flash { animation: hitFlash 0.3s; }
+@keyframes hitFlash { 0%,100% { filter: brightness(1); } 50% { filter: brightness(3) saturate(2); } }
+.buff-effect { position: absolute; top: -20px; right: 0; font-size: 1.5em; animation: buffFloat 2s forwards; z-index: 100; }
+@keyframes buffFloat { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+.vs-text { font-size: 3em; font-weight: 900; color: #ffd700; text-shadow: 0 0 20px #ffd700; animation: vsPulse 1s infinite; }
+@keyframes vsPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+.status-effects { display: flex; justify-content: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.status-icon { font-size: 1.2em; animation: statusPulse 1s infinite; }
+@keyframes statusPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+.select-info { text-align: center; font-size: 1.2em; color: #ffd700; margin: 10px 0; position: relative; z-index: 10; }
+.player-label, .enemy-label { font-size: 0.9em; padding: 3px 10px; border-radius: 10px; margin-bottom: 5px; display: inline-block; }
+.player-label { background: #4488ff; color: #fff; }
+.enemy-label { background: #ff4444; color: #fff; }
+.round-counter { text-align: center; font-size: 1.2em; color: #aaa; margin-bottom: 10px; }
+.difficulty-select { text-align: center; margin: 10px 0; position: relative; z-index: 10; }
+.difficulty-btn { padding: 8px 20px; margin: 0 5px; border: 2px solid; border-radius: 20px; cursor: pointer; font-weight: 700; transition: all 0.3s; }
+.difficulty-btn:hover { transform: scale(1.1); }
+.difficulty-btn.active { box-shadow: 0 0 20px currentColor; }
+.diff-easy { background: #44ff44; border-color: #44ff44; color: #000; }
+.diff-normal { background: #ffd700; border-color: #ffd700; color: #000; }
+.diff-hard { background: #ff4444; border-color: #ff4444; color: #fff; }
+.character-select-title { text-align: center; font-size: 1.5em; color: #ffd700; margin: 10px 0; position: relative; z-index: 10; }
+.ultimate-charge-bar { width: 200px; height: 20px; background: #333; border-radius: 10px; margin: 10px auto; overflow: hidden; border: 2px solid #ffd700; }
+.ultimate-charge-fill { height: 100%; background: linear-gradient(90deg, #ff6600, #ffd700, #ffee88); transition: width 0.5s; border-radius: 8px; }
+.charge-display { font-size: 0.9em; color: #ffd700; margin-top: 5px; }
+.enemy-thinking { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-size: 1em; color: #ff4444; animation: thinkingPulse 0.5s infinite; }
+@keyframes thinkingPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+.critical-hit { color: #ff0000; font-size: 1.5em; text-shadow: 0 0 10px #ff0000; animation: criticalPulse 0.5s; }
+@keyframes criticalPulse { 0% { transform: scale(1); } 50% { transform: scale(1.5); } 100% { transform: scale(1); } }
+.dodge-text { color: #44ff44; font-size: 1.5em; text-shadow: 0 0 10px #44ff44; }
+.stun-effect { animation: stunShake 0.3s infinite; }
+@keyframes stunShake { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+.burn-effect { animation: burnFlicker 0.5s infinite; }
+@keyframes burnFlicker { 0%,100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(30deg) brightness(1.2); } }
+.freeze-effect { animation: freezeShiver 1s infinite; filter: hue-rotate(180deg) brightness(1.2); }
+@keyframes freezeShiver { 0%,100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+.poison-effect-fighter { animation: poisonPulseFighter 1s infinite; filter: hue-rotate(90deg); }
+@keyframes poisonPulseFighter { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+.bleed-effect { animation: bleedDrip 1s infinite; }
+@keyframes bleedDrip { 0%,100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+.fighter-avatar.attack-anim { animation: attackAnim 0.5s; }
+@keyframes attackAnim { 0% { transform: translateX(0); } 30% { transform: translateX(50px) scale(1.2); } 100% { transform: translateX(0); } }
+.fighter-avatar.hit-anim { animation: hitAnim 0.5s; }
+@keyframes hitAnim { 0% { transform: translateX(0); } 20% { transform: translateX(-20px); } 40% { transform: translateX(15px); } 60% { transform: translateX(-10px); } 80% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+.fighter-avatar.dodge-anim { animation: dodgeAnim 0.5s; }
+@keyframes dodgeAnim { 0% { transform: translateX(0); } 50% { transform: translateX(-80px) scale(0.8); } 100% { transform: translateX(0); } }
+.fighter-avatar.charge-anim { animation: chargeAnim 1s infinite; }
+@keyframes chargeAnim { 0%,100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.1); filter: brightness(1.3); } }
+.fighter-avatar.ultimate-pose { animation: ultimatePoseAnim 2s; }
+@keyframes ultimatePoseAnim { 0% { transform: scale(1); } 30% { transform: scale(1.3) translateY(-20px); } 100% { transform: scale(1); } }
+.fighter-avatar.defeat-anim { animation: defeatAnim 1s forwards; }
+@keyframes defeatAnim { 0% { transform: rotate(0deg) translateY(0); opacity: 1; } 100% { transform: rotate(90deg) translateY(50px); opacity: 0.3; } }
+.fighter-avatar.victory-anim { animation: victoryAnim 1s infinite; }
+@keyframes victoryAnim { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+.hp-bar-low { border-color: #ff0000 !important; }
+.hp-bar-critical { animation: hpCriticalAnim 0.5s infinite; }
+@keyframes hpCriticalAnim { 0%,100% { border-color: #ff0000; } 50% { border-color: #ffff00; } }
+.energy-bar-full { border-color: #00ff00 !important; }
+.turn-highlight { box-shadow: 0 0 30px currentColor; animation: turnHighlightAnim 1s infinite; }
+@keyframes turnHighlightAnim { 0%,100% { box-shadow: 0 0 20px currentColor; } 50% { box-shadow: 0 0 40px currentColor, 0 0 60px currentColor; } }
+.skill-locked { position: relative; }
+.skill-locked::after { content: "🔒"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 1.5em; }
+.buff-list { font-size: 0.8em; color: #aaa; margin-top: 5px; }
+.combo-display { position: fixed; top: 20px; right: 20px; font-size: 1.5em; font-weight: 900; color: #ff6600; text-shadow: 0 0 10px #ff6600; z-index: 100; }
+.total-damage { position: fixed; top: 60px; right: 20px; font-size: 1.2em; color: #ff4444; z-index: 100; }
+.turn-count { position: fixed; top: 20px; left: 20px; font-size: 1.2em; color: #ffd700; z-index: 100; }
+.ultimate-name-display { position: fixed; top: 30%; left: 50%; transform: translateX(-50%); font-size: 3em; font-weight: 900; color: #ffd700; text-shadow: 0 0 30px #ffd700; z-index: 1003; animation: ultimateNameAnim 2s forwards; pointer-events: none; display: none; text-align: center; }
+@keyframes ultimateNameAnim { 0% { opacity: 0; transform: translateX(-50%) scale(0); } 20% { opacity: 1; transform: translateX(-50%) scale(1.2); } 80% { opacity: 1; transform: translateX(-50%) scale(1); } 100% { opacity: 0; transform: translateX(-50%) scale(1.5); } }
+.screen-flash-anim { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 999; pointer-events: none; animation: screenFlashAnim 0.3s forwards; display: none; }
+@keyframes screenFlashAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+.ultimate-flash-anim { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(255,215,0,0.8) 0%, rgba(255,100,0,0.4) 50%, transparent 70%); z-index: 999; pointer-events: none; animation: ultimateFlashAnim 2s forwards; display: none; }
+@keyframes ultimateFlashAnim { 0% { opacity: 0; transform: scale(0); } 30% { opacity: 1; transform: scale(1.5); } 70% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0; transform: scale(2); } }
+.skill-anim { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: skillAnimBurst 1s forwards; pointer-events: none; display: none; }
+@keyframes skillAnimBurst { 0% { transform: translate(-50%,-50%) scale(0) rotate(0deg); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.5) rotate(180deg); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2) rotate(360deg); opacity: 0; } }
+.slash-trail { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-45deg); width: 400px; height: 8px; background: linear-gradient(90deg, transparent, #fff, #ff4444, #fff, transparent); z-index: 996; pointer-events: none; animation: slashTrailAnim 0.5s forwards; display: none; box-shadow: 0 0 20px #ff4444; }
+@keyframes slashTrailAnim { 0% { width: 0; opacity: 1; } 50% { width: 400px; opacity: 1; } 100% { width: 500px; opacity: 0; } }
+.fire-burst { position: fixed; bottom: 0; left: 0; width: 100%; height: 60%; background: linear-gradient(0deg, rgba(255,100,0,0.8) 0%, rgba(255,200,0,0.4) 50%, transparent 100%); z-index: 996; pointer-events: none; animation: fireBurstAnim 1.5s forwards; display: none; }
+@keyframes fireBurstAnim { 0% { transform: translateY(100%); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-30%); opacity: 0; } }
+.ice-burst { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 100px; background: radial-gradient(circle, rgba(100,200,255,0.8) 0%, rgba(0,100,200,0.4) 50%, transparent 70%); border-radius: 50%; z-index: 996; pointer-events: none; animation: iceBurstAnim 1.5s forwards; display: none; }
+@keyframes iceBurstAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(3); opacity: 0; } }
+.thunder-burst { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, transparent 0%, rgba(255,255,0,0.9) 50%, transparent 100%); z-index: 998; pointer-events: none; animation: thunderBurstAnim 0.5s forwards; display: none; }
+@keyframes thunderBurstAnim { 0%,100% { opacity: 0; } 10%,30%,50% { opacity: 1; } 20%,40% { opacity: 0.3; } }
+.poison-mist { position: fixed; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(0deg, rgba(100,255,100,0.6) 0%, rgba(0,150,0,0.3) 50%, transparent 100%); z-index: 996; pointer-events: none; animation: poisonMistAnim 2s forwards; display: none; }
+@keyframes poisonMistAnim { 0% { transform: translateY(100%); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-30%); opacity: 0; } }
+.heal-burst { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 6em; z-index: 1002; pointer-events: none; animation: healBurstAnim 1.5s forwards; display: none; }
+@keyframes healBurstAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.5); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2); opacity: 0; } }
+.shield-burst { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 200px; height: 200px; border: 5px solid #4488ff; border-radius: 50%; z-index: 995; pointer-events: none; animation: shieldBurstAnim 1s forwards; display: none; }
+@keyframes shieldBurstAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2); opacity: 0; } }
+.wind-sweep { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(45deg, transparent 40%, rgba(200,255,255,0.3) 50%, transparent 60%); z-index: 996; pointer-events: none; animation: windSweepAnim 1s forwards; display: none; }
+@keyframes windSweepAnim { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+.earthquake-anim { animation: earthquakeAnim 0.5s; }
+@keyframes earthquakeAnim { 0%,100% { transform: translate(0,0); } 10% { transform: translate(-5px,5px); } 20% { transform: translate(5px,-5px); } 30% { transform: translate(-5px,-5px); } 40% { transform: translate(5px,5px); } 50% { transform: translate(-3px,3px); } 60% { transform: translate(3px,-3px); } 70% { transform: translate(-3px,-3px); } 80% { transform: translate(3px,3px); } 90% { transform: translate(-1px,1px); } }
+.shadow-burst { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(50,0,100,0.6) 0%, rgba(0,0,0,0.8) 50%, transparent 70%); z-index: 997; pointer-events: none; animation: shadowBurstAnim 1.5s forwards; display: none; }
+@keyframes shadowBurstAnim { 0% { transform: scale(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+.light-burst { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 10px; height: 10px; background: #fff; border-radius: 50%; z-index: 1000; pointer-events: none; animation: lightBurstAnim 1.5s forwards; display: none; box-shadow: 0 0 50px #fff, 0 0 100px #ffd700; }
+@keyframes lightBurstAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(50); opacity: 0; } }
+.darkness-burst { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(0,0,0,0.9) 0%, rgba(50,0,100,0.6) 50%, transparent 70%); z-index: 997; pointer-events: none; animation: darknessBurstAnim 2s forwards; display: none; }
+@keyframes darknessBurstAnim { 0% { transform: scale(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+.meteor-fall { position: fixed; top: -100px; left: 50%; font-size: 5em; z-index: 1002; pointer-events: none; animation: meteorFallAnim 1.5s forwards; display: none; }
+@keyframes meteorFallAnim { 0% { transform: translate(-50%,0) rotate(0deg); opacity: 1; } 100% { transform: translate(-50%,100vh) rotate(720deg); opacity: 0; } }
+.tornado-anim { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 300px; background: linear-gradient(180deg, transparent, rgba(200,200,200,0.6), transparent); z-index: 996; pointer-events: none; animation: tornadoAnim 1.5s forwards; display: none; }
+@keyframes tornadoAnim { 0% { transform: translate(-50%,-50%) scale(0) rotate(0deg); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2) rotate(720deg); opacity: 0; } }
+.water-rise { position: fixed; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(0deg, rgba(0,100,255,0.6) 0%, rgba(0,200,255,0.3) 50%, transparent 100%); z-index: 996; pointer-events: none; animation: waterRiseAnim 1.5s forwards; display: none; }
+@keyframes waterRiseAnim { 0% { transform: translateY(100%); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-20%); opacity: 0; } }
+.magic-circle { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 300px; height: 300px; border: 3px solid #aa44ff; border-radius: 50%; z-index: 995; pointer-events: none; animation: magicCircleAnim 2s forwards; display: none; }
+.magic-circle::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 200px; height: 200px; border: 2px solid #cc66ff; border-radius: 50%; }
+.magic-circle::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 100px; border: 2px solid #ee88ff; border-radius: 50%; }
+@keyframes magicCircleAnim { 0% { transform: translate(-50%,-50%) scale(0) rotate(0deg); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2) rotate(360deg); opacity: 0; } }
+.god-aura { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 400px; height: 400px; background: radial-gradient(circle, rgba(255,215,0,0.8) 0%, rgba(255,100,0,0.4) 30%, transparent 60%); z-index: 994; pointer-events: none; animation: godAuraAnim 2s forwards; display: none; }
+@keyframes godAuraAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(3); opacity: 0; } }
+.dual-sword { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 996; pointer-events: none; animation: dualSwordAnim 0.8s forwards; display: none; }
+.dual-sword::before, .dual-sword::after { content: ""; position: absolute; width: 300px; height: 8px; background: linear-gradient(90deg, transparent, #fff, #ff4444, #fff, transparent); box-shadow: 0 0 20px #ff4444; }
+.dual-sword::before { transform: rotate(-30deg); }
+.dual-sword::after { transform: rotate(30deg); }
+@keyframes dualSwordAnim { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0.5); } 50% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1.2); } }
+.arrow-rain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 996; pointer-events: none; animation: arrowRainAnim 1s forwards; display: none; }
+.arrow-rain::before, .arrow-rain::after { content: "🏹"; position: absolute; font-size: 3em; animation: arrowFallAnim 0.5s infinite; }
+.arrow-rain::before { left: 20%; animation-delay: 0s; }
+.arrow-rain::after { left: 80%; animation-delay: 0.2s; }
+@keyframes arrowFallAnim { 0% { transform: translateY(-100px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(180deg); opacity: 0; } }
+@keyframes arrowRainAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+.energy-beam { position: fixed; top: 50%; left: 0; width: 100%; height: 20px; background: linear-gradient(90deg, transparent, #ff00ff, #ff88ff, #ff00ff, transparent); z-index: 996; pointer-events: none; animation: energyBeamAnim 1s forwards; display: none; box-shadow: 0 0 30px #ff00ff; }
+@keyframes energyBeamAnim { 0% { transform: translateY(-50%) scaleX(0); opacity: 1; } 50% { transform: translateY(-50%) scaleX(1); opacity: 1; } 100% { transform: translateY(-50%) scaleX(1.5); opacity: 0; } }
+.time-stop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 995; pointer-events: none; animation: timeStopAnim 2s forwards; display: none; }
+@keyframes timeStopAnim { 0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.snow-fall { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 996; pointer-events: none; animation: snowFallAnim 2s forwards; display: none; }
+.snow-fall::before, .snow-fall::after { content: "❄️"; position: absolute; font-size: 2em; animation: snowDropAnim 1s infinite; }
+.snow-fall::before { left: 30%; animation-delay: 0s; }
+.snow-fall::after { left: 70%; animation-delay: 0.5s; }
+@keyframes snowDropAnim { 0% { transform: translateY(-50px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+@keyframes snowFallAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+.firework-burst { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 1002; pointer-events: none; animation: fireworkBurstAnim 1.5s forwards; display: none; }
+.firework-burst::before, .firework-burst::after { content: "✨"; position: absolute; font-size: 4em; }
+.firework-burst::before { animation: fwParticle1 1s infinite; }
+.firework-burst::after { animation: fwParticle2 1s infinite; }
+@keyframes fwParticle1 { 0% { transform: translate(0,0) scale(0); opacity: 1; } 100% { transform: translate(-100px,-100px) scale(1.5); opacity: 0; } }
+@keyframes fwParticle2 { 0% { transform: translate(0,0) scale(0); opacity: 1; } 100% { transform: translate(100px,-100px) scale(1.5); opacity: 0; } }
+@keyframes fireworkBurstAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+.star-burst { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 1002; pointer-events: none; animation: starBurstAnim 1.5s forwards; display: none; }
+.star-burst::before, .star-burst::after { content: "⭐"; position: absolute; font-size: 3em; }
+.star-burst::before { animation: starParticle1 1s infinite; }
+.star-burst::after { animation: starParticle2 1s infinite; }
+@keyframes starParticle1 { 0% { transform: translate(0,0) scale(0); opacity: 1; } 100% { transform: translate(-150px,-50px) scale(2); opacity: 0; } }
+@keyframes starParticle2 { 0% { transform: translate(0,0) scale(0); opacity: 1; } 100% { transform: translate(150px,-50px) scale(2); opacity: 0; } }
+@keyframes starBurstAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+.explosion { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 100px; background: radial-gradient(circle, #ff6600 0%, #ff0000 50%, transparent 70%); border-radius: 50%; z-index: 998; pointer-events: none; animation: explosionAnim 1s forwards; display: none; }
+@keyframes explosionAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(5); opacity: 0; } }
+.blood-splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(255,0,0,0.3) 0%, transparent 70%); z-index: 996; pointer-events: none; animation: bloodSplashAnim 0.5s forwards; display: none; }
+@keyframes bloodSplashAnim { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+.sound-wave { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 100px; border: 5px solid #ff00ff; border-radius: 50%; z-index: 995; pointer-events: none; animation: soundWaveAnim 1s forwards; display: none; }
+@keyframes soundWaveAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(5); opacity: 0; } }
+.energy-ball { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 50px; height: 50px; background: radial-gradient(circle, #fff 0%, #ff00ff 50%, transparent 70%); border-radius: 50%; z-index: 1002; pointer-events: none; animation: energyBallAnim 1s forwards; display: none; box-shadow: 0 0 30px #ff00ff; }
+@keyframes energyBallAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(5); opacity: 0; } }
+.earth-split { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 10px; height: 0; background: linear-gradient(180deg, #ff6600, #ff0000); z-index: 996; pointer-events: none; animation: earthSplitAnim 1s forwards; display: none; }
+@keyframes earthSplitAnim { 0% { height: 0; opacity: 1; } 50% { height: 50vh; opacity: 1; } 100% { height: 100vh; opacity: 0; } }
+.fire-ring { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 100px; border: 10px solid #ff6600; border-radius: 50%; z-index: 995; pointer-events: none; animation: fireRingAnim 1s forwards; display: none; }
+@keyframes fireRingAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(4); opacity: 0; } }
+.charge-effect { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 100px; border: 5px solid #ffd700; border-radius: 50%; z-index: 995; pointer-events: none; animation: chargeEffectAnim 1s forwards; display: none; }
+@keyframes chargeEffectAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(5); opacity: 0; } }
+.impact-shockwave { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 50px; height: 50px; border: 3px solid #fff; border-radius: 50%; z-index: 997; pointer-events: none; animation: shockwaveAnim 0.5s forwards; display: none; }
+@keyframes shockwaveAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(10); opacity: 0; } }
+.crack-effect { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 200px; height: 200px; z-index: 996; pointer-events: none; animation: crackAnim 0.5s forwards; display: none; }
+.crack-effect::before { content: ""; position: absolute; top: 0; left: 50%; width: 3px; height: 100%; background: linear-gradient(180deg, transparent, #fff, transparent); transform: rotate(15deg); }
+.crack-effect::after { content: ""; position: absolute; top: 0; left: 50%; width: 3px; height: 100%; background: linear-gradient(180deg, transparent, #fff, transparent); transform: rotate(-15deg); }
+@keyframes crackAnim { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0.5); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1.5); } }
+.impact-lines { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 300px; height: 300px; z-index: 997; pointer-events: none; display: none; }
+.impact-lines::before { content: ""; position: absolute; top: 50%; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, transparent, #fff, transparent); animation: impactLine1 0.3s forwards; }
+.impact-lines::after { content: ""; position: absolute; top: 0; left: 50%; width: 3px; height: 100%; background: linear-gradient(180deg, transparent, #fff, transparent); animation: impactLine2 0.3s forwards; }
+@keyframes impactLine1 { 0% { transform: scaleX(0); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@keyframes impactLine2 { 0% { transform: scaleY(0); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+.energy-wave { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 100px; height: 100px; border: 5px solid; border-radius: 50%; z-index: 995; pointer-events: none; animation: energyWaveExpand 1s forwards; display: none; }
+@keyframes energyWaveExpand { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(5); opacity: 0; } }
+.rune-circle { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 250px; height: 250px; border: 4px solid #00ffff; border-radius: 50%; z-index: 995; pointer-events: none; animation: runeCircleAnim 2s forwards; display: none; }
+.rune-circle::before { content: "ᚠᚢᚦᚨᚱᚲ"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 2em; color: #00ffff; text-shadow: 0 0 10px #00ffff; }
+@keyframes runeCircleAnim { 0% { transform: translate(-50%,-50%) scale(0) rotate(0deg); opacity: 1; } 50% { opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2) rotate(-360deg); opacity: 0; } }
+.thunder-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 10em; z-index: 1002; animation: thunderGodAnim 2s forwards; pointer-events: none; display: none; text-shadow: 0 0 50px #ffff00, 0 0 100px #ff6600; }
+@keyframes thunderGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 30% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.dragon-effect { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: dragonAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes dragonAnim { 0% { transform: translate(-50%,-50%) scale(0) rotate(-180deg); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2) rotate(0deg); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5) rotate(180deg); opacity: 0; } }
+.phoenix-effect { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: phoenixAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes phoenixAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 30% { transform: translate(-50%,-50%) scale(1.3); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(2) translateY(-100px); opacity: 0; } }
+.ice-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: iceGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes iceGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.shadow-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: shadowGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes shadowGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.light-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: lightGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes lightGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.nature-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: natureGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes natureGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.sword-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: swordGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes swordGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.magic-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: magicGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes magicGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.poison-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: poisonGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes poisonGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.wind-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: windGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes windGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
+.earth-god { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8em; z-index: 1002; animation: earthGodAnim 2s forwards; pointer-events: none; display: none; }
+@keyframes earthGodAnim { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; } }
 </style>
 <base target="_blank">
 </head>
 <body>
-<div id="game-wrapper">
-    <canvas id="game-canvas"></canvas>
-    <div id="ui-layer">
-        <!-- Turn Indicator -->
-        <div id="turn-indicator">🎮 เทิร์นของ: ผู้เล่น 1</div>
+<div class="stars" id="stars"></div>
 
-        <!-- Battle Arena -->
-        <div id="battle-arena">
-            <div class="char-card active" id="card-p1">
-                <canvas class="char-sprite" id="sprite-p1"></canvas>
-                <div class="char-name" id="name-p1">???</div>
-                <div class="char-class" id="class-p1">???</div>
-                <div class="char-hp-bar"><div class="char-hp-fill" id="hp-p1" style="width:100%;background:linear-gradient(90deg,#3498db,#2980b9)"></div></div>
-                <div class="char-hp-text" id="hp-text-p1">100/100</div>
-                <div class="ult-gauge"><div class="ult-fill" id="ult-p1"></div></div>
-                <div class="ult-text" id="ult-text-p1">ท่าไม้ตาย: 0%</div>
-            </div>
+<div class="game-title">⚔️ ศึกสงคราม 5 อัศวิน ⚔️</div>
 
-            <div class="vs-badge">VS</div>
+<div id="selectScreen">
+    <div class="character-select-title">เลือกตัวละครของคุณ</div>
+    <div class="select-info" id="selectInfo">คลิกเลือกตัวละคร 1 ตัว</div>
 
-            <div class="char-card" id="card-p2">
-                <canvas class="char-sprite" id="sprite-p2"></canvas>
-                <div class="char-name" id="name-p2">???</div>
-                <div class="char-class" id="class-p2">???</div>
-                <div class="char-hp-bar"><div class="char-hp-fill" id="hp-p2" style="width:100%;background:linear-gradient(90deg,#e74c3c,#c0392b)"></div></div>
-                <div class="char-hp-text" id="hp-text-p2">100/100</div>
-                <div class="ult-gauge"><div class="ult-fill" id="ult-p2"></div></div>
-                <div class="ult-text" id="ult-text-p2">ท่าไม้ตาย: 0%</div>
-            </div>
-        </div>
-
-        <!-- Code Challenge -->
-        <div id="challenge-area">
-            <div class="challenge-title" id="challenge-title">⚔️ ความท้าทาย: โจมตีปกติ</div>
-            <div class="challenge-desc" id="challenge-desc">พิมพ์โค้ดให้เสร็จภายในเวลาที่กำหนด!</div>
-            <div id="challenge-timer">15.0</div>
-            <div id="code-display"></div>
-        </div>
-
-        <!-- Skill Menu -->
-        <div id="skill-menu">
-            <button class="skill-btn" data-skill="0" onclick="battle.selectSkill(0)">
-                <span class="skill-key">1</span>
-                <span class="skill-name">โจมตี</span>
-            </button>
-            <button class="skill-btn" data-skill="1" onclick="battle.selectSkill(1)">
-                <span class="skill-key">2</span>
-                <span class="skill-name">ป้องกัน</span>
-            </button>
-            <button class="skill-btn" data-skill="2" onclick="battle.selectSkill(2)">
-                <span class="skill-key">3</span>
-                <span class="skill-name">ฮีล</span>
-            </button>
-            <button class="skill-btn" data-skill="3" onclick="battle.selectSkill(3)">
-                <span class="skill-key">4</span>
-                <span class="skill-name">บัฟ</span>
-            </button>
-            <button class="skill-btn ultimate" data-skill="4" onclick="battle.selectSkill(4)" id="btn-ult">
-                <span class="skill-key">5</span>
-                <span class="skill-name">ไม้ตาย</span>
-            </button>
-        </div>
-
-        <!-- Battle Log -->
-        <div id="battle-log"></div>
+    <div class="difficulty-select">
+        <span style="color:#ffd700; margin-right:10px;">ระดับความยาก:</span>
+        <button class="difficulty-btn diff-easy active" onclick="setDifficulty('easy')">ง่าย</button>
+        <button class="difficulty-btn diff-normal" onclick="setDifficulty('normal')">ปกติ</button>
+        <button class="difficulty-btn diff-hard" onclick="setDifficulty('hard')">ยาก</button>
     </div>
 
-    <!-- Start Screen -->
-    <div id="start-screen">
-        <div class="game-title">⚔️ Code Duel</div>
-        <div class="game-subtitle">ศึกโค้ดสลับเทิร์น</div>
-        <div style="color:#aaa;font-size:13px;margin-bottom:20px;text-align:center;max-width:500px;line-height:1.6">
-            <strong>วิธีเล่น:</strong><br>
-            1. ผู้เล่น 1 เลือกตัวละคร → ผู้เล่น 2 เลือกตัวละคร<br>
-            2. สลับกันเลือกสกิล (1-5) → พิมพ์โค้ดให้เสร็จ → สกิลสำเร็จ!<br>
-            3. สะสมเกจท่าไม้ตาย → กด 5 เมื่อเกจเต็ม → ปล่อยอัลติเมท!<br>
-            4. ใคร HP หมดก่อนแพ้!
-        </div>
-        <div class="char-select">
-            <div class="char-option" data-char="warrior" onclick="selectChar(1, 'warrior')">
-                <canvas class="opt-sprite" id="opt-warrior"></canvas>
-                <div class="opt-name">เทพซามูไร</div>
-                <div class="opt-class">นักรบโค้ด</div>
-                <div class="opt-stats">HP: 120<br>ATK: 18<br>DEF: 6<br>สไตล์: โจมตีหนัก</div>
-            </div>
-            <div class="char-option" data-char="mage" onclick="selectChar(1, 'mage')">
-                <canvas class="opt-sprite" id="opt-mage"></canvas>
-                <div class="opt-name">พ่อมดไพธอน</div>
-                <div class="opt-class">นักเวทโค้ด</div>
-                <div class="opt-stats">HP: 90<br>ATK: 22<br>DEF: 4<br>สไตล์: เวทโจมตี</div>
-            </div>
-            <div class="char-option" data-char="ninja" onclick="selectChar(1, 'ninja')">
-                <canvas class="opt-sprite" id="opt-ninja"></canvas>
-                <div class="opt-name">นินจาจาวาสคริปต์</div>
-                <div class="opt-class">นักฆ่าโค้ด</div>
-                <div class="opt-stats">HP: 100<br>ATK: 20<br>DEF: 5<br>สไตล์: โจมตีเร็ว</div>
-            </div>
-        </div>
-        <div id="p1-selected" style="color:#ffd700;font-size:14px;margin-bottom:10px;height:20px"></div>
-        <button class="start-btn" onclick="startGame()" id="start-btn" style="display:none">⚔️ เริ่มศึก!</button>
+    <div class="character-select" id="characterSelect"></div>
+
+    <button class="start-btn" id="startBtn" onclick="startBattle()" disabled>⚔️ เริ่มศึก ⚔️</button>
+</div>
+
+<div class="battle-arena" id="battleArena">
+    <div class="turn-count" id="turnCount">รอบที่: 1</div>
+    <div class="combo-display" id="comboDisplay">คอมโบ: 0</div>
+    <div class="total-damage" id="totalDamage">ดาเมจรวม: 0</div>
+
+    <div class="turn-indicator" id="turnIndicator">
+        <span class="turn-player">🛡️ ตาของคุณ</span>
     </div>
 
-    <!-- Result Screen -->
-    <div id="result-screen">
-        <div class="result-title" id="result-title">🏆 ผู้ชนะ!</div>
-        <div class="result-stats" id="result-stats"></div>
-        <button class="result-btn" onclick="location.reload()">🔁 เล่นใหม่</button>
+    <div class="round-counter" id="roundCounter">รอบที่ 1</div>
+
+    <div class="battle-field" id="battleField">
+        <div class="battle-arena-bg"></div>
+
+        <div class="fighter" id="playerFighter">
+            <span class="player-label">ผู้เล่น</span>
+            <div class="fighter-avatar" id="playerAvatar">⚔️</div>
+            <div class="fighter-name" id="playerName">---</div>
+            <div class="fighter-hp-bar" id="playerHpBar">
+                <div class="fighter-hp-fill" id="playerHpFill" style="width:100%"></div>
+                <div class="fighter-hp-text" id="playerHpText">1000/1000</div>
+            </div>
+            <div class="fighter-energy-bar" id="playerEnergyBar">
+                <div class="fighter-energy-fill" id="playerEnergyFill" style="width:0%"></div>
+            </div>
+            <div class="fighter-energy-text" id="playerEnergyText">พลังงาน: 0/100</div>
+            <div class="ultimate-charge-bar" id="playerChargeBar">
+                <div class="ultimate-charge-fill" id="playerChargeFill" style="width:0%"></div>
+            </div>
+            <div class="charge-display" id="playerChargeText">ชาร์จอัลติเมท: 0/5</div>
+            <div class="status-effects" id="playerStatus"></div>
+            <div class="buff-list" id="playerBuffs"></div>
+        </div>
+
+        <div class="vs-text">VS</div>
+
+        <div class="fighter" id="enemyFighter">
+            <span class="enemy-label">ศัตรู</span>
+            <div class="enemy-thinking" id="enemyThinking" style="display:none">กำลังคิด...</div>
+            <div class="fighter-avatar" id="enemyAvatar">👹</div>
+            <div class="fighter-name" id="enemyName">---</div>
+            <div class="fighter-hp-bar" id="enemyHpBar">
+                <div class="fighter-hp-fill" id="enemyHpFill" style="width:100%"></div>
+                <div class="fighter-hp-text" id="enemyHpText">1000/1000</div>
+            </div>
+            <div class="fighter-energy-bar" id="enemyEnergyBar">
+                <div class="fighter-energy-fill" id="enemyEnergyFill" style="width:0%"></div>
+            </div>
+            <div class="fighter-energy-text" id="enemyEnergyText">พลังงาน: 0/100</div>
+            <div class="ultimate-charge-bar" id="enemyChargeBar">
+                <div class="ultimate-charge-fill" id="enemyChargeFill" style="width:0%"></div>
+            </div>
+            <div class="charge-display" id="enemyChargeText">ชาร์จอัลติเมท: 0/5</div>
+            <div class="status-effects" id="enemyStatus"></div>
+            <div class="buff-list" id="enemyBuffs"></div>
+        </div>
+    </div>
+
+    <div class="skill-bar" id="skillBar"></div>
+
+    <div style="text-align:center;">
+        <button class="ultimate-btn" id="ultimateBtn" onclick="useUltimate()" disabled>⚡ อัลติเมทสกิล ⚡</button>
+    </div>
+
+    <div class="battle-log" id="battleLog">
+        <div class="log-entry log-system">⚔️ ศึกเริ่มต้นขึ้นแล้ว!</div>
     </div>
 </div>
 
+<div class="game-over" id="gameOver">
+    <div class="game-over-text" id="gameOverText"></div>
+    <div id="gameOverStats"></div>
+    <button class="restart-btn" onclick="restartGame()">🔄 เล่นใหม่</button>
+</div>
+
+<div class="ultimate-name-display" id="ultimateNameDisplay"></div>
+<div class="screen-flash-anim" id="screenFlash"></div>
+<div class="ultimate-flash-anim" id="ultimateFlash"></div>
+<div class="skill-anim" id="skillAnim"></div>
+<div class="slash-trail" id="slashTrail"></div>
+<div class="fire-burst" id="fireBurst"></div>
+<div class="ice-burst" id="iceBurst"></div>
+<div class="thunder-burst" id="thunderBurst"></div>
+<div class="poison-mist" id="poisonMist"></div>
+<div class="heal-burst" id="healBurst"></div>
+<div class="shield-burst" id="shieldBurst"></div>
+<div class="wind-sweep" id="windSweep"></div>
+<div class="shadow-burst" id="shadowBurst"></div>
+<div class="light-burst" id="lightBurst"></div>
+<div class="darkness-burst" id="darknessBurst"></div>
+<div class="meteor-fall" id="meteorFall"></div>
+<div class="tornado-anim" id="tornado"></div>
+<div class="water-rise" id="waterRise"></div>
+<div class="magic-circle" id="magicCircle"></div>
+<div class="god-aura" id="godAura"></div>
+<div class="dual-sword" id="dualSword"></div>
+<div class="arrow-rain" id="arrowRain"></div>
+<div class="energy-beam" id="energyBeam"></div>
+<div class="time-stop" id="timeStop"></div>
+<div class="snow-fall" id="snowFall"></div>
+<div class="firework-burst" id="fireworkBurst"></div>
+<div class="star-burst" id="starBurst"></div>
+<div class="explosion" id="explosion"></div>
+<div class="blood-splash" id="bloodSplash"></div>
+<div class="sound-wave" id="soundWave"></div>
+<div class="energy-ball" id="energyBall"></div>
+<div class="earth-split" id="earthSplit"></div>
+<div class="fire-ring" id="fireRing"></div>
+<div class="charge-effect" id="chargeEffect"></div>
+<div class="impact-shockwave" id="impactShockwave"></div>
+<div class="crack-effect" id="crackEffect"></div>
+<div class="impact-lines" id="impactLines"></div>
+<div class="energy-wave" id="energyWave"></div>
+<div class="rune-circle" id="runeCircle"></div>
+<div class="thunder-god" id="thunderGod">⚡</div>
+<div class="dragon-effect" id="dragonEffect">🐉</div>
+<div class="phoenix-effect" id="phoenixEffect">🔥</div>
+<div class="ice-god" id="iceGod">❄️</div>
+<div class="shadow-god" id="shadowGod">👤</div>
+<div class="light-god" id="lightGod">✨</div>
+<div class="nature-god" id="natureGod">🌿</div>
+<div class="sword-god" id="swordGod">⚔️</div>
+<div class="magic-god" id="magicGod">🔮</div>
+<div class="poison-god" id="poisonGod">☠️</div>
+<div class="wind-god" id="windGod">🌪️</div>
+<div class="earth-god" id="earthGod">🌍</div>
+
 <script>
-// ============================================
-// CODE DUEL - TURN-BASED CODE BATTLE
-// ============================================
 
-const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
-
-// ============ CHARACTER DATA ============
-const CHARACTERS = {
-    warrior: {
-        name: 'เทพซามูไร',
-        class: 'นักรบโค้ด',
-        desc: 'อดีตนักพัฒนาที่ผันตัวมาเป็นนักรบ ใช้ดาบซามูไรคมกริบตัดบั๊ก',
-        hp: 120, maxHp: 120, atk: 18, def: 6, spd: 8,
-        color: '#3498db',
+// ==================== ข้อมูลตัวละคร 5 ตัว ====================
+const characters = [
+    {
+        id: 0, name: "เทพดาบไฟ", icon: "🔥", class: "นักรบไฟ",
+        hp: 1200, maxHp: 1200, atk: 85, def: 60, spd: 70,
+        element: "fire", color: "#ff6600",
         skills: [
-            { name: 'ตัดบั๊ก', type: 'attack', power: 1.0, desc: 'โจมตีปกติ', time: 15 },
-            { name: 'บั๊กชิลด์', type: 'defend', power: 0.5, desc: 'ลดดาเมจครึ่งหนึ่ง 2 เทิร์น', time: 12 },
-            { name: 'รีแฟกเตอร์', type: 'heal', power: 0.3, desc: 'ฮีล HP 30%', time: 14 },
-            { name: 'คอมไพล์เพาเวอร์', type: 'buff', power: 1.5, desc: 'ATK x1.5 สำหรับ 2 เทิร์น', time: 13 },
-            { name: 'เดลีตี้บั๊กอินฟินิตี้', type: 'ultimate', power: 3.0, desc: 'โจมตีรุนแรง 3x ดาเมจ!', time: 20 }
+            { name: "ฟันดาบไฟ", cost: 10, damage: 1.2, type: "attack", effect: "slash", desc: "ฟันดาบพร้อมเปลวไฟ", icon: "🔥" },
+            { name: "ระเบิดเพลิง", cost: 25, damage: 1.8, type: "attack", effect: "fire", desc: "ระเบิดเปลวไฟรอบตัว", icon: "💥" },
+            { name: "เกราะเพลิง", cost: 20, type: "buff", buff: "fireShield", desc: "เพิ่มเกราะไฟ ลดดาเมจ 50%", icon: "🛡️" },
+            { name: "เผาไหม้", cost: 15, damage: 0.8, type: "dot", dot: "burn", desc: "เผาศัตรู 3 รอบ", icon: "🔥" },
+            { name: "กระโดดฟัน", cost: 30, damage: 2.2, type: "attack", effect: "jump", desc: "กระโดดฟันดาบทรงพลัง", icon: "⚔️" }
         ],
-        ultName: 'เดลีตี้บั๊กอินฟินิตี้'
+        ultimate: { name: "เทพเพลิงผลาญโลก", damage: 4.0, effect: "phoenix", desc: "เรียกเทพเพลิงทำลายล้าง", icon: "🔥" },
+        ultimateCharge: 0, maxUltimateCharge: 5
     },
-    mage: {
-        name: 'พ่อมดไพธอน',
-        class: 'นักเวทโค้ด',
-        desc: 'พ่อมดผู้เชี่ยวชาญเวทมนตร์ไพธอน ร่ายคาถาโค้ดทำลายล้าง',
-        hp: 90, maxHp: 90, atk: 22, def: 4, spd: 10,
-        color: '#9b59b6',
+    {
+        id: 1, name: "จอมเวทน้ำแข็ง", icon: "❄️", class: "จอมเวท",
+        hp: 900, maxHp: 900, atk: 110, def: 45, spd: 65,
+        element: "ice", color: "#00ccff",
         skills: [
-            { name: 'เวทไฟร์บอล', type: 'attack', power: 1.0, desc: 'โจมตีปกติ', time: 15 },
-            { name: 'ไอซ์ชิลด์', type: 'defend', power: 0.5, desc: 'ลดดาเมจครึ่งหนึ่ง 2 เทิร์น', time: 12 },
-            { name: 'รีเจน', type: 'heal', power: 0.25, desc: 'ฮีล HP 25%', time: 14 },
-            { name: 'เมจิกบูสต์', type: 'buff', power: 1.5, desc: 'ATK x1.5 สำหรับ 2 เทิร์น', time: 13 },
-            { name: 'ซูเปอร์โนวาโค้ด', type: 'ultimate', power: 3.5, desc: 'เวททำลายล้าง 3.5x ดาเมจ!', time: 20 }
+            { name: "ลูกแก้วน้ำแข็ง", cost: 10, damage: 1.3, type: "attack", effect: "ice", desc: "ยิงลูกแก้วน้ำแข็ง", icon: "❄️" },
+            { name: "พายุหิมะ", cost: 30, damage: 2.0, type: "attack", effect: "blizzard", desc: "พายุหิมะทำลายล้าง", icon: "🌨️" },
+            { name: "ผนึกแข็ง", cost: 25, type: "debuff", debuff: "freeze", desc: "แช่แข็งศัตรู 2 รอบ", icon: "🧊" },
+            { name: "เกราะน้ำแข็ง", cost: 20, type: "buff", buff: "iceArmor", desc: "เพิ่มเกราะน้ำแข็ง", icon: "🛡️" },
+            { name: "ธารน้ำแข็ง", cost: 35, damage: 2.5, type: "attack", effect: "glacier", desc: "ธารน้ำแข็งถล่ม", icon: "🏔️" }
         ],
-        ultName: 'ซูเปอร์โนวาโค้ด'
+        ultimate: { name: "เทพน้ำแข็งอภินิหาร", damage: 4.5, effect: "iceGod", desc: "เรียกเทพน้ำแข็งผนึกโลก", icon: "❄️" },
+        ultimateCharge: 0, maxUltimateCharge: 5
     },
-    ninja: {
-        name: 'นินจาจาวาสคริปต์',
-        class: 'นักฆ่าโค้ด',
-        desc: 'นินจาผู้เร็วเหนือแสง ใช้ความเร็วในการพิมพ์เป็นอาวุธ',
-        hp: 100, maxHp: 100, atk: 20, def: 5, spd: 15,
-        color: '#e74c3c',
+    {
+        id: 2, name: "นักรบสายฟ้า", icon: "⚡", class: "นักรบสายฟ้า",
+        hp: 1000, maxHp: 1000, atk: 95, def: 55, spd: 90,
+        element: "thunder", color: "#ffff00",
         skills: [
-            { name: 'คาตานะสไลซ์', type: 'attack', power: 1.0, desc: 'โจมตีปกติ', time: 12 },
-            { name: 'สโมคบอมบ์', type: 'defend', power: 0.5, desc: 'ลดดาเมจครึ่งหนึ่ง 2 เทิร์น', time: 10 },
-            { name: 'ชาโดว์ฮีล', type: 'heal', power: 0.2, desc: 'ฮีล HP 20%', time: 12 },
-            { name: 'สปีดบูสต์', type: 'buff', power: 1.5, desc: 'ATK x1.5 สำหรับ 2 เทิร์น', time: 11 },
-            { name: 'โค้ดอัสซิเนชัน', type: 'ultimate', power: 3.0, desc: 'โจมตีวาร์ป 3x ดาเมจ!', time: 18 }
+            { name: "ฟ้าผ่า", cost: 10, damage: 1.4, type: "attack", effect: "thunder", desc: "สายฟ้าฟาดศัตรู", icon: "⚡" },
+            { name: "พายุฟ้าคะนอง", cost: 30, damage: 2.2, type: "attack", effect: "storm", desc: "พายุฟ้าคะนองรุนแรง", icon: "⛈️" },
+            { name: "ความเร็วสายฟ้า", cost: 20, type: "buff", buff: "speedUp", desc: "เพิ่มความเร็ว 50%", icon: "💨" },
+            { name: "ช็อตไฟฟ้า", cost: 15, damage: 1.0, type: "debuff", debuff: "stun", desc: "ช็อตศัตรู 1 รอบ", icon: "⚡" },
+            { name: "สายฟ้าลงทัณฑ์", cost: 35, damage: 2.8, type: "attack", effect: "judgment", desc: "สายฟ้าลงทัณฑ์จากฟ้า", icon: "🌩️" }
         ],
-        ultName: 'โค้ดอัสซิเนชัน'
+        ultimate: { name: "เทพสายฟ้าอัสนี", damage: 4.0, effect: "thunderGod", desc: "เรียกเทพสายฟ้าทำลายล้าง", icon: "⚡" },
+        ultimateCharge: 0, maxUltimateCharge: 5
+    },
+    {
+        id: 3, name: "นักฆ่าเงามืด", icon: "🌑", class: "นักฆ่า",
+        hp: 850, maxHp: 850, atk: 120, def: 40, spd: 95,
+        element: "shadow", color: "#6600cc",
+        skills: [
+            { name: "แทงเงา", cost: 10, damage: 1.5, type: "attack", effect: "shadow", desc: "แทงจากเงามืด", icon: "🗡️" },
+            { name: "ระเบิดเงา", cost: 25, damage: 2.0, type: "attack", effect: "shadowBurst", desc: "ระเบิดพลังเงา", icon: "💣" },
+            { name: "หายตัว", cost: 20, type: "buff", buff: "stealth", desc: "หายตัว 2 รอบ (หลบ100%)", icon: "👻" },
+            { name: "พิษเงา", cost: 15, damage: 0.6, type: "dot", dot: "poison", desc: "พิษเงา 4 รอบ", icon: "☠️" },
+            { name: "ฟันสองดาบ", cost: 30, damage: 2.5, type: "attack", effect: "dualSword", desc: "ฟันดาบคู่รุนแรง", icon: "⚔️" }
+        ],
+        ultimate: { name: "เทพเงาอสูร", damage: 5.0, effect: "shadowGod", desc: "เรียกเทพเงาอสูรกลืนกิน", icon: "🌑" },
+        ultimateCharge: 0, maxUltimateCharge: 5
+    },
+    {
+        id: 4, name: "ปราชญ์แห่งแสง", icon: "✨", class: "ปราชญ์",
+        hp: 950, maxHp: 950, atk: 80, def: 70, spd: 60,
+        element: "light", color: "#ffd700",
+        skills: [
+            { name: "ลูกแก้วแสง", cost: 10, damage: 1.1, type: "attack", effect: "light", desc: "ยิงลูกแก้วแสง", icon: "✨" },
+            { name: "ลำแสงศักดิ์สิทธิ์", cost: 30, damage: 2.0, type: "attack", effect: "holyBeam", desc: "ลำแสงศักดิ์สิทธิ์", icon: "🌟" },
+            { name: "รักษาแสง", cost: 25, type: "heal", heal: 200, desc: "รักษา 200 HP", icon: "💚" },
+            { name: "เกราะแสง", cost: 20, type: "buff", buff: "lightShield", desc: "เพิ่มเกราะแสง +ป้องกันสถานะ", icon: "🛡️" },
+            { name: "ดาวตก", cost: 35, damage: 2.3, type: "attack", effect: "meteor", desc: "เรียกดาวตกถล่ม", icon: "☄️" }
+        ],
+        ultimate: { name: "เทพแสงผู้พิทักษ์", damage: 3.5, effect: "lightGod", desc: "เรียกเทพแสงชำระล้าง", icon: "✨" },
+        ultimateCharge: 0, maxUltimateCharge: 5
     }
-};
-
-// ============ CODE SNIPPETS ============
-const CODE_SNIPPETS = [
-    { code: `console.log("Hello World!");`, time: 10 },
-    { code: `let x = 10;
-let y = 20;
-console.log(x + y);`, time: 12 },
-    { code: `function greet(name) {
-  return "Hi " + name;
-}`, time: 14 },
-    { code: `const arr = [1, 2, 3];
-arr.forEach(n => console.log(n));`, time: 15 },
-    { code: `if (x > 5) {
-  console.log("big");
-} else {
-  console.log("small");
-}`, time: 16 },
-    { code: `class Hero {
-  constructor(name) {
-    this.name = name;
-  }
-}`, time: 18 },
-    { code: `const sum = (a, b) => a + b;
-console.log(sum(5, 3));`, time: 14 },
-    { code: `try {
-  risky();
-} catch (e) {
-  console.log(e);
-}`, time: 16 },
-    { code: `const obj = { a: 1, b: 2 };
-const { a, b } = obj;`, time: 15 },
-    { code: `const nums = [1, 2, 3];
-const doubled = nums.map(n => n * 2);`, time: 16 },
-    { code: `setTimeout(() => {
-  console.log("done");
-}, 1000);`, time: 15 },
-    { code: `const promise = new Promise((resolve) => {
-  resolve("ok");
-});`, time: 18 }
 ];
 
-// ============ GAME STATE ============
-const state = {
-    screen: 'start',
-    turn: 1, // 1 or 2
-    round: 1,
-    p1: { char: null, hp: 0, maxHp: 0, atk: 0, def: 0, ultGauge: 0, buffTurns: 0, buffAtk: 1, defendTurns: 0 },
-    p2: { char: null, hp: 0, maxHp: 0, atk: 0, def: 0, ultGauge: 0, buffTurns: 0, buffAtk: 1, defendTurns: 0 },
-    selectedSkill: null,
-    currentCode: null,
-    timer: 0,
-    timerInterval: null,
-    active: false,
-    p1Selected: false,
-    p2Selected: false
-};
+// ==================== ตัวแปรเกม ====================
+let playerChar = null;
+let enemyChar = null;
+let currentTurn = 'player';
+let round = 1;
+let gameActive = false;
+let difficulty = 'normal';
+let playerCombo = 0;
+let enemyCombo = 0;
+let playerTotalDamage = 0;
+let enemyTotalDamage = 0;
+let selectedCharIndex = -1;
 
-// ============ PIXEL ART DRAWING ============
-function drawCharSprite(canvasId, type, isOption = false) {
-    const c = document.getElementById(canvasId);
-    const cx = c.getContext('2d');
-    const size = isOption ? 60 : 100;
-    c.width = size; c.height = size;
-    cx.imageSmoothingEnabled = false;
-    const P = size / 16;
+// สถานะเอฟเฟค
+let playerStatus = { stun: 0, burn: 0, freeze: 0, poison: 0, bleed: 0, buffs: [] };
+let enemyStatus = { stun: 0, burn: 0, freeze: 0, poison: 0, bleed: 0, buffs: [] };
 
-    function rect(x, y, w, h, color) {
-        cx.fillStyle = color;
-        cx.fillRect(x * P, y * P, w * P, h * P);
-    }
-
-    // Shadow
-    cx.fillStyle = 'rgba(0,0,0,0.3)';
-    cx.beginPath();
-    cx.ellipse(size/2, size - 5, size/3, 5, 0, 0, Math.PI*2);
-    cx.fill();
-
-    if (type === 'warrior') {
-        // Samurai Code Warrior
-        // Legs
-        rect(5, 11, 3, 4, '#2c3e50');
-        rect(8, 11, 3, 4, '#2c3e50');
-        rect(5, 14, 3, 1, '#1a1a1a');
-        rect(8, 14, 3, 1, '#1a1a1a');
-        // Body - blue armor
-        rect(4, 6, 8, 6, '#3498db');
-        rect(6, 6, 4, 6, '#2980b9');
-        rect(4, 6, 8, 2, '#5dade2'); // shoulder
-        // Arms
-        rect(2, 7, 2, 4, '#e8c39e');
-        rect(12, 7, 2, 4, '#e8c39e');
-        // Head
-        rect(5, 2, 6, 5, '#e8c39e');
-        rect(6, 4, 1, 1, '#1a1a1a'); // eye
-        rect(9, 4, 1, 1, '#1a1a1a');
-        rect(7, 6, 2, 1, '#c0392b'); // mouth
-        // Hair - samurai style
-        rect(4, 1, 8, 3, '#1a1a1a');
-        rect(5, 0, 6, 2, '#1a1a1a');
-        rect(3, 2, 2, 3, '#1a1a1a'); // side
-        rect(11, 2, 2, 3, '#1a1a1a');
-        // Headband
-        rect(4, 2, 8, 1, '#e74c3c');
-        rect(12, 2, 1, 2, '#e74c3c');
-        // Sword
-        rect(13, 5, 1, 8, '#bdc3c7');
-        rect(12, 4, 3, 1, '#95a5a6');
-        rect(13, 3, 1, 1, '#ecf0f1');
-
-    } else if (type === 'mage') {
-        // Python Mage
-        // Robe
-        rect(4, 6, 8, 8, '#9b59b6');
-        rect(6, 6, 4, 8, '#8e44ad');
-        // Legs
-        rect(5, 13, 3, 2, '#5d4037');
-        rect(8, 13, 3, 2, '#5d4037');
-        // Arms
-        rect(2, 7, 2, 4, '#e8c39e');
-        rect(12, 7, 2, 4, '#e8c39e');
-        // Head
-        rect(5, 2, 6, 5, '#e8c39e');
-        rect(6, 4, 1, 1, '#1a1a1a');
-        rect(9, 4, 1, 1, '#1a1a1a');
-        // Glasses
-        rect(6, 3, 2, 2, '#3498db');
-        rect(8, 3, 2, 2, '#3498db');
-        // Hair
-        rect(4, 1, 8, 3, '#ecf0f1');
-        rect(3, 2, 1, 4, '#ecf0f1');
-        rect(12, 2, 1, 4, '#ecf0f1');
-        // Wizard hat
-        rect(3, -2, 10, 4, '#9b59b6');
-        rect(4, -4, 8, 3, '#8e44ad');
-        rect(6, -6, 4, 3, '#9b59b6');
-        rect(7, -7, 2, 2, '#f39c12'); // star
-        // Staff
-        rect(1, 4, 1, 10, '#8b6914');
-        rect(0, 3, 3, 2, '#3498db');
-
-    } else if (type === 'ninja') {
-        // JavaScript Ninja
-        // Body - black suit
-        rect(4, 6, 8, 7, '#2c3e50');
-        rect(6, 6, 4, 7, '#1a1a2e');
-        // Red scarf
-        rect(5, 8, 6, 2, '#e74c3c');
-        // Legs
-        rect(5, 12, 3, 3, '#2c3e50');
-        rect(8, 12, 3, 3, '#2c3e50');
-        // Arms
-        rect(2, 7, 2, 4, '#2c3e50');
-        rect(12, 7, 2, 4, '#2c3e50');
-        // Head - mask
-        rect(5, 2, 6, 5, '#2c3e50');
-        rect(6, 4, 1, 1, '#e74c3c'); // eye visible
-        rect(9, 4, 1, 1, '#e74c3c');
-        // Headband
-        rect(4, 2, 8, 2, '#e74c3c');
-        rect(12, 2, 2, 2, '#e74c3c');
-        // Kunai
-        rect(13, 6, 1, 4, '#95a5a6');
-        rect(12, 5, 3, 1, '#7f8c8d');
+// ==================== สร้างดาวพื้นหลัง ====================
+function createStars() {
+    const starsContainer = document.getElementById('stars');
+    for (let i = 0; i < 100; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 2 + 's';
+        star.style.width = (Math.random() * 3 + 1) + 'px';
+        star.style.height = star.style.width;
+        starsContainer.appendChild(star);
     }
 }
+createStars();
 
-// ============ BACKGROUND ============
-function renderBg() {
-    const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+// ==================== แสดงตัวละครให้เลือก ====================
+function renderCharacterSelect() {
+    const container = document.getElementById('characterSelect');
+    container.innerHTML = '';
 
-    // Gradient
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, '#0a0a1a');
-    grad.addColorStop(0.5, '#1a0a2e');
-    grad.addColorStop(1, '#0d0520');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Grid
-    ctx.strokeStyle = 'rgba(201,168,76,0.08)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < canvas.width; x += 50) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-    }
-    for (let y = 0; y < canvas.height; y += 50) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-    }
-
-    // Floating code particles
-    ctx.fillStyle = 'rgba(63, 185, 80, 0.1)';
-    ctx.font = '14px monospace';
-    const chars = '{}[];:=+-*/<>!01';
-    const time = Date.now() / 1000;
-    for (let i = 0; i < 15; i++) {
-        const x = ((time * 20 + i * 60) % (canvas.width + 40)) - 20;
-        const y = ((time * 15 + i * 40) % (canvas.height + 40)) - 20;
-        ctx.fillText(chars[Math.floor((time + i) % chars.length)], x, y);
-    }
+    characters.forEach((char, index) => {
+        const card = document.createElement('div');
+        card.className = 'character-card';
+        card.onclick = () => selectCharacter(index);
+        card.innerHTML = `
+            <span class="char-icon">${char.icon}</span>
+            <div class="char-name">${char.name}</div>
+            <div class="char-class">${char.class}</div>
+            <div class="char-stats">
+                <div>HP: <div class="stat-bar"><div class="stat-fill hp-fill" style="width:${char.hp/15}%"></div></div></div>
+                <div>ATK: <div class="stat-bar"><div class="stat-fill atk-fill" style="width:${char.atk}%"></div></div></div>
+                <div>DEF: <div class="stat-bar"><div class="stat-fill def-fill" style="width:${char.def}%"></div></div></div>
+                <div>SPD: <div class="stat-bar"><div class="stat-fill spd-fill" style="width:${char.spd}%"></div></div></div>
+            </div>
+            <div class="character-desc">
+                <strong>ธาตุ:</strong> ${getElementName(char.element)}<br>
+                <strong>อัลติเมท:</strong> ${char.ultimate.name}
+            </div>
+        `;
+        container.appendChild(card);
+    });
 }
 
-// ============ CHARACTER SELECTION ============
-let p1Char = null;
-let p2Char = null;
-
-function selectChar(player, charType) {
-    if (player === 1) {
-        p1Char = charType;
-        document.querySelectorAll('.char-option').forEach(el => el.classList.remove('selected'));
-        document.querySelector(`.char-option[data-char="${charType}"]`).classList.add('selected');
-        document.getElementById('p1-selected').textContent = `ผู้เล่น 1 เลือก: ${CHARACTERS[charType].name} → รอผู้เล่น 2 เลือก`;
-        state.p1Selected = true;
-
-        // Switch to player 2 selection
-        setTimeout(() => {
-            document.getElementById('p1-selected').textContent = 'ผู้เล่น 2: เลือกตัวละครของคุณ!';
-            document.querySelectorAll('.char-option').forEach(el => {
-                el.onclick = () => selectChar(2, el.dataset.char);
-                el.classList.remove('selected');
-            });
-        }, 500);
-
-    } else {
-        p2Char = charType;
-        document.querySelector(`.char-option[data-char="${charType}"]`).classList.add('selected');
-        document.getElementById('p1-selected').textContent = `พร้อม! ${CHARACTERS[p1Char].name} VS ${CHARACTERS[charType].name}`;
-        document.getElementById('start-btn').style.display = 'block';
-        state.p2Selected = true;
-    }
+function getElementName(element) {
+    const names = { fire: "🔥 ไฟ", ice: "❄️ น้ำแข็ง", thunder: "⚡ สายฟ้า", shadow: "🌑 เงา", light: "✨ แสง" };
+    return names[element] || element;
 }
 
-// ============ GAME START ============
-function startGame() {
-    if (!p1Char || !p2Char) return;
-
-    document.getElementById('start-screen').classList.add('hidden');
-
-    // Init characters
-    const c1 = CHARACTERS[p1Char];
-    const c2 = CHARACTERS[p2Char];
-
-    state.p1.char = p1Char;
-    state.p1.hp = c1.hp;
-    state.p1.maxHp = c1.maxHp;
-    state.p1.atk = c1.atk;
-    state.p1.def = c1.def;
-    state.p1.ultGauge = 0;
-    state.p1.buffTurns = 0;
-    state.p1.buffAtk = 1;
-    state.p1.defendTurns = 0;
-
-    state.p2.char = p2Char;
-    state.p2.hp = c2.hp;
-    state.p2.maxHp = c2.maxHp;
-    state.p2.atk = c2.atk;
-    state.p2.def = c2.def;
-    state.p2.ultGauge = 0;
-    state.p2.buffTurns = 0;
-    state.p2.buffAtk = 1;
-    state.p2.defendTurns = 0;
-
-    // Update UI
-    document.getElementById('name-p1').textContent = c1.name;
-    document.getElementById('class-p1').textContent = c1.class;
-    document.getElementById('name-p2').textContent = c2.name;
-    document.getElementById('class-p2').textContent = c2.class;
-
-    updateHP();
-    updateUlt();
-
-    // Draw sprites
-    drawCharSprite('sprite-p1', p1Char);
-    drawCharSprite('sprite-p2', p2Char);
-
-    state.active = true;
-    state.turn = 1;
-
-    addLog('⚔️ ศึกเริ่มต้นขึ้น! ' + c1.name + ' VS ' + c2.name);
-
-    startTurn();
+function selectCharacter(index) {
+    selectedCharIndex = index;
+    const cards = document.querySelectorAll('.character-card');
+    cards.forEach((card, i) => {
+        card.classList.toggle('selected', i === index);
+    });
+    document.getElementById('selectInfo').innerHTML = `คุณเลือก: <strong>${characters[index].name}</strong> ${characters[index].icon} | กด "เริ่มศึก" เพื่อต่อสู้!`;
+    document.getElementById('startBtn').disabled = false;
 }
 
-// ============ TURN SYSTEM ============
-function startTurn() {
-    const p = state.turn === 1 ? state.p1 : state.p2;
-    const char = CHARACTERS[p.char];
+function setDifficulty(diff) {
+    difficulty = diff;
+    document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.diff-${diff}`).classList.add('active');
+}
 
-    // Update turn indicator
-    document.getElementById('turn-indicator').textContent = 
-        `🎮 เทิร์นของ: ${char.name} (ผู้เล่น ${state.turn})`;
+renderCharacterSelect();
 
-    // Highlight active character
-    document.getElementById('card-p1').classList.toggle('active', state.turn === 1);
-    document.getElementById('card-p2').classList.toggle('active', state.turn === 2);
+// ==================== เริ่มเกม ====================
+function startBattle() {
+    if (selectedCharIndex === -1) return;
 
-    // Decrease buff/defend turns
-    if (p.buffTurns > 0) {
-        p.buffTurns--;
-        if (p.buffTurns === 0) {
-            p.buffAtk = 1;
-            addLog(`⬇️ ${char.name} บัฟหมดอายุแล้ว`);
-        }
+    // คัดลอกตัวละคร
+    playerChar = JSON.parse(JSON.stringify(characters[selectedCharIndex]));
+
+    // เลือกศัตรูแบบสุ่ม (ไม่ซ้ำกับผู้เล่น)
+    let enemyIndex;
+    do { enemyIndex = Math.floor(Math.random() * characters.length); }
+    while (enemyIndex === selectedCharIndex);
+    enemyChar = JSON.parse(JSON.stringify(characters[enemyIndex]));
+
+    // ปรับค่าศัตรูตามระดับความยาก
+    if (difficulty === 'easy') {
+        enemyChar.hp = Math.floor(enemyChar.hp * 0.8);
+        enemyChar.maxHp = enemyChar.hp;
+        enemyChar.atk = Math.floor(enemyChar.atk * 0.8);
+    } else if (difficulty === 'hard') {
+        enemyChar.hp = Math.floor(enemyChar.hp * 1.3);
+        enemyChar.maxHp = enemyChar.hp;
+        enemyChar.atk = Math.floor(enemyChar.atk * 1.2);
     }
-    if (p.defendTurns > 0) {
-        p.defendTurns--;
-        if (p.defendTurns === 0) {
-            addLog(`⬇️ ${char.name} โล่ป้องกันหมดอายุแล้ว`);
-        }
-    }
 
-    // Show skill menu
-    document.getElementById('skill-menu').classList.add('active');
-    document.getElementById('challenge-area').classList.remove('active');
+    // รีเซ็ตสถานะ
+    playerStatus = { stun: 0, burn: 0, freeze: 0, poison: 0, bleed: 0, buffs: [] };
+    enemyStatus = { stun: 0, burn: 0, freeze: 0, poison: 0, bleed: 0, buffs: [] };
+    playerChar.energy = 0;
+    enemyChar.energy = 0;
+    playerChar.ultimateCharge = 0;
+    enemyChar.ultimateCharge = 0;
 
-    // Update skill buttons
-    char.skills.forEach((skill, i) => {
-        const btn = document.querySelector(`.skill-btn[data-skill="${i}"]`);
-        btn.querySelector('.skill-name').textContent = skill.name;
-        if (skill.type === 'ultimate') {
-            btn.disabled = p.ultGauge < 100;
-            btn.style.opacity = p.ultGauge >= 100 ? '1' : '0.4';
+    round = 1;
+    currentTurn = 'player';
+    gameActive = true;
+    playerCombo = 0;
+    enemyCombo = 0;
+    playerTotalDamage = 0;
+    enemyTotalDamage = 0;
+
+    // อัปเดต UI
+    document.getElementById('selectScreen').style.display = 'none';
+    document.getElementById('battleArena').style.display = 'block';
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+    updateTurnIndicator();
+
+    addLog('⚔️ ศึกเริ่มต้นขึ้นแล้ว! ' + playerChar.name + ' VS ' + enemyChar.name, 'system');
+    addLog('🎮 ตาของคุณ! เลือกสกิลเพื่อโจมตี', 'player');
+}
+
+// ==================== อัปเดต UI นักสู้ ====================
+function updateFighterUI(side) {
+    const char = side === 'player' ? playerChar : enemyChar;
+    const status = side === 'player' ? playerStatus : enemyStatus;
+
+    document.getElementById(side + 'Avatar').textContent = char.icon;
+    document.getElementById(side + 'Name').textContent = char.name;
+
+    const hpPercent = (char.hp / char.maxHp) * 100;
+    document.getElementById(side + 'HpFill').style.width = hpPercent + '%';
+    document.getElementById(side + 'HpText').textContent = Math.max(0, char.hp) + '/' + char.maxHp;
+
+    const energyPercent = (char.energy / 100) * 100;
+    document.getElementById(side + 'EnergyFill').style.width = energyPercent + '%';
+    document.getElementById(side + 'EnergyText').textContent = 'พลังงาน: ' + char.energy + '/100';
+
+    const chargePercent = (char.ultimateCharge / char.maxUltimateCharge) * 100;
+    document.getElementById(side + 'ChargeFill').style.width = chargePercent + '%';
+    document.getElementById(side + 'ChargeText').textContent = 'ชาร์จอัลติเมท: ' + char.ultimateCharge + '/' + char.maxUltimateCharge;
+
+    // อัปเดตสถานะ
+    const statusContainer = document.getElementById(side + 'Status');
+    statusContainer.innerHTML = '';
+    if (status.stun > 0) statusContainer.innerHTML += '<span class="status-icon stun-icon">😵 ' + status.stun + '</span>';
+    if (status.burn > 0) statusContainer.innerHTML += '<span class="status-icon burn-icon">🔥 ' + status.burn + '</span>';
+    if (status.freeze > 0) statusContainer.innerHTML += '<span class="status-icon freeze-icon">🧊 ' + status.freeze + '</span>';
+    if (status.poison > 0) statusContainer.innerHTML += '<span class="status-icon poison-icon">☠️ ' + status.poison + '</span>';
+    if (status.bleed > 0) statusContainer.innerHTML += '<span class="status-icon bleed-icon">🩸 ' + status.bleed + '</span>';
+
+    // อัปเดตบัฟ
+    const buffContainer = document.getElementById(side + 'Buffs');
+    buffContainer.innerHTML = '';
+    status.buffs.forEach(buff => {
+        if (buff.turns > 0) {
+            buffContainer.innerHTML += '<span style="color:' + buff.color + '">' + buff.icon + ' ' + buff.name + '(' + buff.turns + ')</span> ';
         }
     });
 
-    addLog(`👉 ${char.name} เลือกสกิล (กด 1-5)`);
+    // อัปเดต HP bar สี
+    const hpBar = document.getElementById(side + 'HpBar');
+    hpBar.classList.remove('hp-bar-low', 'hp-bar-critical');
+    if (hpPercent <= 25) hpBar.classList.add('hp-bar-critical');
+    else if (hpPercent <= 50) hpBar.classList.add('hp-bar-low');
+
+    // อัปเดต Energy bar
+    const energyBar = document.getElementById(side + 'EnergyBar');
+    energyBar.classList.remove('energy-bar-full');
+    if (char.energy >= 100) energyBar.classList.add('energy-bar-full');
+
+    // อัปเดตปุ่มอัลติเมท
+    if (side === 'player') {
+        const ultBtn = document.getElementById('ultimateBtn');
+        ultBtn.disabled = char.ultimateCharge < char.maxUltimateCharge;
+        if (!ultBtn.disabled) {
+            ultBtn.textContent = '⚡ ' + char.ultimate.name + ' ⚡';
+        } else {
+            ultBtn.textContent = '⚡ อัลติเมทสกิล ⚡';
+        }
+    }
 }
 
-// ============ SKILL SELECTION ============
-const battle = {
-    selectSkill(skillIndex) {
-        const p = state.turn === 1 ? state.p1 : state.p2;
-        const char = CHARACTERS[p.char];
-        const skill = char.skills[skillIndex];
+// ==================== แสดงสกิล ====================
+function renderSkills() {
+    const container = document.getElementById('skillBar');
+    container.innerHTML = '';
 
-        if (skill.type === 'ultimate' && p.ultGauge < 100) {
-            addLog('❌ เกจท่าไม้ตายยังไม่เต็ม!');
+    playerChar.skills.forEach((skill, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'skill-btn skill-' + (index + 1);
+        btn.innerHTML = skill.icon + ' ' + skill.name + '<span class="skill-cost">💎 ' + skill.cost + ' พลังงาน</span>';
+        btn.disabled = playerChar.energy < skill.cost || !gameActive || currentTurn !== 'player';
+        btn.onclick = () => useSkill(index);
+        container.appendChild(btn);
+    });
+}
+
+// ==================== ใช้สกิล ====================
+function useSkill(skillIndex) {
+    if (!gameActive || currentTurn !== 'player') return;
+
+    const skill = playerChar.skills[skillIndex];
+    if (playerChar.energy < skill.cost) return;
+
+    // ตรวจสอบสถานะสตัน
+    if (playerStatus.stun > 0) {
+        addLog('😵 คุณถูกสตัน! ไม่สามารถใช้สกิลได้', 'system');
+        endPlayerTurn();
+        return;
+    }
+
+    // ตรวจสอบสถานะแช่แข็ง
+    if (playerStatus.freeze > 0) {
+        addLog('🧊 คุณถูกแช่แข็ง! ไม่สามารถใช้สกิลได้', 'system');
+        endPlayerTurn();
+        return;
+    }
+
+    playerChar.energy -= skill.cost;
+
+    // แสดงเอฟเฟคสกิล
+    showSkillEffect(skill.effect, skill.icon);
+
+    // แสดงชื่อสกิล
+    showUltimateName(skill.name, skill.icon);
+
+    // ประมวลผลสกิล
+    let damage = 0;
+    let isCrit = Math.random() < 0.15;
+    let critMultiplier = isCrit ? 1.5 : 1.0;
+
+    // ตรวจสอบบัฟเพิ่มดาเมจ
+    let buffMultiplier = 1.0;
+    playerStatus.buffs.forEach(buff => {
+        if (buff.type === 'atkUp') buffMultiplier += buff.value;
+    });
+
+    if (skill.type === 'attack') {
+        damage = Math.floor(playerChar.atk * skill.damage * critMultiplier * buffMultiplier);
+
+        // ตรวจสอบหลบหลีกศัตรู
+        let dodgeChance = enemyChar.spd / 200;
+        enemyStatus.buffs.forEach(buff => {
+            if (buff.type === 'dodgeUp') dodgeChance += buff.value;
+        });
+
+        if (Math.random() < dodgeChance) {
+            addLog('💨 ' + enemyChar.name + ' หลบหลีกการโจมตี!', 'enemy');
+            showDodgeEffect('enemy');
+        } else {
+            // ตรวจสอบเกราะ
+            let actualDamage = damage;
+            enemyStatus.buffs.forEach(buff => {
+                if (buff.type === 'shield') {
+                    actualDamage = Math.floor(actualDamage * (1 - buff.value));
+                    addLog('🛡️ เกราะลดดาเมจเหลือ ' + actualDamage, 'system');
+                }
+            });
+
+            enemyChar.hp -= actualDamage;
+            playerTotalDamage += actualDamage;
+            playerCombo++;
+
+            showDamageNumber('enemy', actualDamage, isCrit);
+            addLog((isCrit ? '💥 ' : '') + playerChar.name + ' ใช้ ' + skill.name + ' ทำดาเมจ ' + actualDamage + ' แต้ม!', 'player');
+
+            // แสดงเอฟเฟคโดนตี
+            document.getElementById('enemyAvatar').classList.add('hit-anim');
+            document.getElementById('enemyFighter').classList.add('shake');
+            setTimeout(() => {
+                document.getElementById('enemyAvatar').classList.remove('hit-anim');
+                document.getElementById('enemyFighter').classList.remove('shake');
+            }, 500);
+
+            // แสดงเอฟเฟคเลือด
+            if (actualDamage > 100) showEffect('bloodSplash');
+        }
+    } else if (skill.type === 'dot') {
+        damage = Math.floor(playerChar.atk * skill.damage);
+        enemyChar.hp -= damage;
+        playerTotalDamage += damage;
+
+        // ใส่สถานะ DOT
+        if (skill.dot === 'burn') {
+            enemyStatus.burn = 3;
+            addLog('🔥 ' + enemyChar.name + ' ติดไฟ! จะเผาไหม้ 3 รอบ', 'player');
+        } else if (skill.dot === 'poison') {
+            enemyStatus.poison = 4;
+            addLog('☠️ ' + enemyChar.name + ' ติดพิษ! จะได้รับพิษ 4 รอบ', 'player');
+        }
+
+        showDamageNumber('enemy', damage, false);
+        document.getElementById('enemyAvatar').classList.add('hit-anim');
+        setTimeout(() => document.getElementById('enemyAvatar').classList.remove('hit-anim'), 500);
+    } else if (skill.type === 'buff') {
+        if (skill.buff === 'fireShield') {
+            playerStatus.buffs.push({ name: 'เกราะไฟ', icon: '🔥', type: 'shield', value: 0.5, turns: 3, color: '#ff6600' });
+            addLog('🛡️ ' + playerChar.name + ' สร้างเกราะไฟ! ลดดาเมจ 50% 3 รอบ', 'player');
+            showEffect('fireRing');
+        } else if (skill.buff === 'iceArmor') {
+            playerStatus.buffs.push({ name: 'เกราะน้ำแข็ง', icon: '❄️', type: 'shield', value: 0.4, turns: 3, color: '#00ccff' });
+            addLog('🛡️ ' + playerChar.name + ' สร้างเกราะน้ำแข็ง! ลดดาเมจ 40% 3 รอบ', 'player');
+            showEffect('iceBurst');
+        } else if (skill.buff === 'speedUp') {
+            playerStatus.buffs.push({ name: 'ความเร็วสายฟ้า', icon: '⚡', type: 'spdUp', value: 0.5, turns: 3, color: '#ffff00' });
+            addLog('💨 ' + playerChar.name + ' เพิ่มความเร็ว 50% 3 รอบ!', 'player');
+            showEffect('energyWave');
+        } else if (skill.buff === 'stealth') {
+            playerStatus.buffs.push({ name: 'หายตัว', icon: '👻', type: 'dodgeUp', value: 1.0, turns: 2, color: '#6600cc' });
+            addLog('👻 ' + playerChar.name + ' หายตัว! หลบหลีก 100% 2 รอบ', 'player');
+            showEffect('shadowBurst');
+        } else if (skill.buff === 'lightShield') {
+            playerStatus.buffs.push({ name: 'เกราะแสง', icon: '✨', type: 'shield', value: 0.35, turns: 3, color: '#ffd700' });
+            playerStatus.buffs.push({ name: 'ป้องกันสถานะ', icon: '🛡️', type: 'statusImmune', turns: 3, color: '#ffd700' });
+            addLog('🛡️ ' + playerChar.name + ' สร้างเกราะแสง! ลดดาเมจ 35% + ป้องกันสถานะ 3 รอบ', 'player');
+            showEffect('shieldBurst');
+        }
+    } else if (skill.type === 'debuff') {
+        if (skill.debuff === 'freeze') {
+            enemyStatus.freeze = 2;
+            addLog('🧊 ' + enemyChar.name + ' ถูกแช่แข็ง! 2 รอบ', 'player');
+            showEffect('snowFall');
+        } else if (skill.debuff === 'stun') {
+            enemyStatus.stun = 1;
+            addLog('😵 ' + enemyChar.name + ' ถูกช็อตสตัน! 1 รอบ', 'player');
+            showEffect('thunderBurst');
+        }
+    } else if (skill.type === 'heal') {
+        const healAmount = skill.heal;
+        playerChar.hp = Math.min(playerChar.maxHp, playerChar.hp + healAmount);
+        addLog('💚 ' + playerChar.name + ' รักษาตัวเอง ' + healAmount + ' HP!', 'player');
+        showHealNumber('player', healAmount);
+        showEffect('healBurst');
+    }
+
+    // เพิ่มชาร์จอัลติเมท
+    playerChar.ultimateCharge = Math.min(playerChar.maxUltimateCharge, playerChar.ultimateCharge + 1);
+
+    // ฟื้นฟูพลังงานเล็กน้อย
+    playerChar.energy = Math.min(100, playerChar.energy + 5);
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+    updateComboDisplay();
+
+    // ตรวจสอบชนะ
+    if (enemyChar.hp <= 0) {
+        endGame('win');
+        return;
+    }
+
+    // จบตาผู้เล่น
+    setTimeout(() => {
+        endPlayerTurn();
+    }, 1500);
+}
+
+// ==================== ใช้อัลติเมท ====================
+function useUltimate() {
+    if (!gameActive || currentTurn !== 'player') return;
+    if (playerChar.ultimateCharge < playerChar.maxUltimateCharge) return;
+    if (playerStatus.stun > 0 || playerStatus.freeze > 0) {
+        addLog('ไม่สามารถใช้อัลติเมทได้ในขณะถูกควบคุม!', 'system');
+        return;
+    }
+
+    playerChar.ultimateCharge = 0;
+    const ult = playerChar.ultimate;
+
+    // แสดงชื่ออัลติเมท
+    showUltimateName(ult.name, ult.icon);
+
+    // แสดงเอฟเฟคอัลติเมท
+    showUltimateEffect(ult.effect);
+
+    // คำนวณดาเมจ
+    let damage = Math.floor(playerChar.atk * ult.damage);
+    let isCrit = Math.random() < 0.3;
+    if (isCrit) damage = Math.floor(damage * 1.5);
+
+    // ตรวจสอบหลบหลีก
+    let dodgeChance = enemyChar.spd / 300;
+    if (Math.random() < dodgeChance) {
+        addLog('💨 ' + enemyChar.name + ' หลบหลีกอัลติเมท!', 'enemy');
+        showDodgeEffect('enemy');
+    } else {
+        enemyChar.hp -= damage;
+        playerTotalDamage += damage;
+        playerCombo = 0; // รีเซ็ตคอมโบหลังอัลติเมท
+
+        showDamageNumber('enemy', damage, true);
+        addLog('🔥🔥🔥 ' + playerChar.name + ' ใช้อัลติเมท ' + ult.name + ' ทำดาเมจ ' + damage + ' แต้ม!!! 🔥🔥🔥', 'ultimate');
+
+        // เอฟเฟคโดนตีรุนแรง
+        document.getElementById('enemyAvatar').classList.add('hit-anim');
+        document.getElementById('enemyFighter').classList.add('shake');
+        document.getElementById('battleField').classList.add('earthquake-anim');
+        showEffect('screenFlash');
+        showEffect('explosion');
+        showEffect('bloodSplash');
+
+        setTimeout(() => {
+            document.getElementById('enemyAvatar').classList.remove('hit-anim');
+            document.getElementById('enemyFighter').classList.remove('shake');
+            document.getElementById('battleField').classList.remove('earthquake-anim');
+        }, 1000);
+    }
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+    updateComboDisplay();
+
+    if (enemyChar.hp <= 0) {
+        endGame('win');
+        return;
+    }
+
+    setTimeout(() => {
+        endPlayerTurn();
+    }, 2500);
+}
+
+// ==================== จบตาผู้เล่น ====================
+function endPlayerTurn() {
+    if (!gameActive) return;
+
+    // ประมวลผล DOT ผู้เล่น
+    processDOT('player');
+
+    // ลดเวลาบัฟผู้เล่น
+    processBuffs('player');
+
+    // ลดเวลาสถานะผู้เล่น
+    processStatus('player');
+
+    // ฟื้นฟูพลังงาน
+    playerChar.energy = Math.min(100, playerChar.energy + 15);
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+
+    currentTurn = 'enemy';
+    updateTurnIndicator();
+
+    // ตรวจสอบชนะอีกครั้ง
+    if (enemyChar.hp <= 0) {
+        endGame('win');
+        return;
+    }
+    if (playerChar.hp <= 0) {
+        endGame('lose');
+        return;
+    }
+
+    // ตาศัตรู
+    setTimeout(() => {
+        enemyTurn();
+    }, 1000);
+}
+
+// ==================== ตาศัตรู (AI) ====================
+function enemyTurn() {
+    if (!gameActive) return;
+
+    document.getElementById('enemyThinking').style.display = 'block';
+
+    setTimeout(() => {
+        document.getElementById('enemyThinking').style.display = 'none';
+
+        // ตรวจสอบสถานะสตัน/แช่แข็ง
+        if (enemyStatus.stun > 0) {
+            addLog('😵 ' + enemyChar.name + ' ถูกสตัน! ข้ามตา', 'system');
+            enemyStatus.stun--;
+            endEnemyTurn();
+            return;
+        }
+        if (enemyStatus.freeze > 0) {
+            addLog('🧊 ' + enemyChar.name + ' ถูกแช่แข็ง! ข้ามตา', 'system');
+            enemyStatus.freeze--;
+            endEnemyTurn();
             return;
         }
 
-        state.selectedSkill = skillIndex;
-        document.getElementById('skill-menu').classList.remove('active');
+        // AI เลือกสกิล
+        let skillIndex = -1;
 
-        // Show challenge
-        const snippet = CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)];
-        state.currentCode = snippet;
+        // ถ้าชาร์จเต็ม ใช้อัลติเมท
+        if (enemyChar.ultimateCharge >= enemyChar.maxUltimateCharge) {
+            enemyUseUltimate();
+            return;
+        }
 
-        document.getElementById('challenge-title').textContent = 
-            `⚔️ ${skill.name} - ${skill.desc}`;
-        document.getElementById('challenge-desc').textContent = 
-            `พิมพ์โค้ดให้เสร็จใน ${skill.time} วินาที!`;
-
-        initCodeDisplay(snippet.code);
-        document.getElementById('challenge-area').classList.add('active');
-
-        startTimer(skill.time);
-
-        // Reset typed
-        p.typed = '';
-        p.errors = 0;
-    }
-};
-
-// ============ CODE DISPLAY ============
-function initCodeDisplay(code) {
-    const content = document.getElementById('code-display');
-    content.innerHTML = '';
-
-    const lines = code.split('\n');
-    lines.forEach((line, idx) => {
-        const div = document.createElement('div');
-        div.className = 'code-line';
-        div.innerHTML = `
-            <span class="line-num">${idx + 1}</span>
-            <span class="code-text" id="line-${idx}">${escapeHtml(line)}</span>
-        `;
-        content.appendChild(div);
-    });
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function updateCodeDisplay(typed) {
-    const code = state.currentCode.code;
-    const lines = code.split('\n');
-
-    let charIndex = 0;
-    lines.forEach((line, lineIdx) => {
-        const lineEl = document.getElementById(`line-${lineIdx}`);
-        if (!lineEl) return;
-
-        let html = '';
-        for (let i = 0; i < line.length; i++) {
-            const expected = line[i];
-            const typedChar = typed[charIndex];
-
-            if (charIndex < typed.length) {
-                if (typedChar === expected) {
-                    html += `<span class="correct">${escapeHtml(expected)}</span>`;
-                } else {
-                    html += `<span class="wrong">${escapeHtml(typedChar || ' ')}</span>`;
-                }
-            } else if (charIndex === typed.length) {
-                html += `<span class="cursor">${escapeHtml(expected)}</span>`;
-            } else {
-                html += escapeHtml(expected);
+        // ถ้า HP ต่ำ ใช้ฮีลหรือเกราะ
+        if (enemyChar.hp < enemyChar.maxHp * 0.3) {
+            const healSkills = enemyChar.skills.filter((s, i) => s.type === 'heal' && enemyChar.energy >= s.cost);
+            const shieldSkills = enemyChar.skills.filter((s, i) => s.type === 'buff' && enemyChar.energy >= s.cost);
+            if (healSkills.length > 0) {
+                skillIndex = enemyChar.skills.indexOf(healSkills[0]);
+            } else if (shieldSkills.length > 0) {
+                skillIndex = enemyChar.skills.indexOf(shieldSkills[0]);
             }
-            charIndex++;
         }
 
-        if (charIndex === typed.length && typed.length > 0 && typed.length < code.length) {
-            html += '<span class="cursor"> </span>';
+        // ถ้าไม่มีสกิลพิเศษ เลือกสกิลโจมตีที่แรงที่สุดที่มีพลังงานพอ
+        if (skillIndex === -1) {
+            const availableSkills = enemyChar.skills.map((s, i) => ({ skill: s, index: i }))
+                .filter(item => enemyChar.energy >= item.skill.cost)
+                .sort((a, b) => {
+                    // ให้ความสำคัญกับสกิลโจมตี
+                    const aDmg = a.skill.damage || 0;
+                    const bDmg = b.skill.damage || 0;
+                    return bDmg - aDmg;
+                });
+
+            if (availableSkills.length > 0) {
+                // สุ่มเลือกจากสกิลที่แรงที่สุด 3 อันดับแรก
+                const topSkills = availableSkills.slice(0, Math.min(3, availableSkills.length));
+                skillIndex = topSkills[Math.floor(Math.random() * topSkills.length)].index;
+            }
         }
 
-        lineEl.innerHTML = html;
+        // ถ้าไม่มีพลังงานพอ ใช้โจมตีธรรมดา
+        if (skillIndex === -1) {
+            enemyBasicAttack();
+            return;
+        }
+
+        enemyUseSkill(skillIndex);
+    }, 1500);
+}
+
+// ==================== ศัตรูใช้สกิล ====================
+function enemyUseSkill(skillIndex) {
+    const skill = enemyChar.skills[skillIndex];
+    enemyChar.energy -= skill.cost;
+
+    showSkillEffect(skill.effect, skill.icon);
+    showUltimateName(skill.name, skill.icon);
+
+    let damage = 0;
+    let isCrit = Math.random() < 0.15;
+    let critMultiplier = isCrit ? 1.5 : 1.0;
+
+    // ตรวจสอบบัฟเพิ่มดาเมจศัตรู
+    let buffMultiplier = 1.0;
+    enemyStatus.buffs.forEach(buff => {
+        if (buff.type === 'atkUp') buffMultiplier += buff.value;
     });
-}
 
-// ============ TIMER ============
-function startTimer(seconds) {
-    state.timer = seconds;
-    const timerEl = document.getElementById('challenge-timer');
-    timerEl.textContent = state.timer.toFixed(1);
-    timerEl.classList.remove('urgent');
+    if (skill.type === 'attack') {
+        damage = Math.floor(enemyChar.atk * skill.damage * critMultiplier * buffMultiplier);
 
-    const startTime = Date.now();
+        // ตรวจสอบหลบหลีกผู้เล่น
+        let dodgeChance = playerChar.spd / 200;
+        playerStatus.buffs.forEach(buff => {
+            if (buff.type === 'dodgeUp') dodgeChance += buff.value;
+        });
 
-    state.timerInterval = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 1000;
-        state.timer = Math.max(0, seconds - elapsed);
-        timerEl.textContent = state.timer.toFixed(1);
+        if (Math.random() < dodgeChance) {
+            addLog('💨 ' + playerChar.name + ' หลบหลีกการโจมตี!', 'player');
+            showDodgeEffect('player');
+        } else {
+            let actualDamage = damage;
+            playerStatus.buffs.forEach(buff => {
+                if (buff.type === 'shield') {
+                    actualDamage = Math.floor(actualDamage * (1 - buff.value));
+                }
+            });
 
-        if (state.timer <= 5) {
-            timerEl.classList.add('urgent');
+            playerChar.hp -= actualDamage;
+            enemyTotalDamage += actualDamage;
+            enemyCombo++;
+
+            showDamageNumber('player', actualDamage, isCrit);
+            addLog((isCrit ? '💥 ' : '') + enemyChar.name + ' ใช้ ' + skill.name + ' ทำดาเมจ ' + actualDamage + ' แต้ม!', 'enemy');
+
+            document.getElementById('playerAvatar').classList.add('hit-anim');
+            document.getElementById('playerFighter').classList.add('shake');
+            if (actualDamage > 100) showEffect('bloodSplash');
+
+            setTimeout(() => {
+                document.getElementById('playerAvatar').classList.remove('hit-anim');
+                document.getElementById('playerFighter').classList.remove('shake');
+            }, 500);
+        }
+    } else if (skill.type === 'dot') {
+        damage = Math.floor(enemyChar.atk * skill.damage);
+        playerChar.hp -= damage;
+        enemyTotalDamage += damage;
+
+        if (skill.dot === 'burn') {
+            playerStatus.burn = 3;
+            addLog('🔥 ' + playerChar.name + ' ติดไฟ! 3 รอบ', 'enemy');
+        } else if (skill.dot === 'poison') {
+            playerStatus.poison = 4;
+            addLog('☠️ ' + playerChar.name + ' ติดพิษ! 4 รอบ', 'enemy');
         }
 
-        if (state.timer <= 0) {
-            clearInterval(state.timerInterval);
-            skillFail();
+        showDamageNumber('player', damage, false);
+        document.getElementById('playerAvatar').classList.add('hit-anim');
+        setTimeout(() => document.getElementById('playerAvatar').classList.remove('hit-anim'), 500);
+    } else if (skill.type === 'buff') {
+        if (skill.buff === 'fireShield') {
+            enemyStatus.buffs.push({ name: 'เกราะไฟ', icon: '🔥', type: 'shield', value: 0.5, turns: 3, color: '#ff6600' });
+            addLog('🛡️ ' + enemyChar.name + ' สร้างเกราะไฟ!', 'enemy');
+        } else if (skill.buff === 'iceArmor') {
+            enemyStatus.buffs.push({ name: 'เกราะน้ำแข็ง', icon: '❄️', type: 'shield', value: 0.4, turns: 3, color: '#00ccff' });
+            addLog('🛡️ ' + enemyChar.name + ' สร้างเกราะน้ำแข็ง!', 'enemy');
+        } else if (skill.buff === 'speedUp') {
+            enemyStatus.buffs.push({ name: 'ความเร็วสายฟ้า', icon: '⚡', type: 'spdUp', value: 0.5, turns: 3, color: '#ffff00' });
+            addLog('💨 ' + enemyChar.name + ' เพิ่มความเร็ว!', 'enemy');
+        } else if (skill.buff === 'stealth') {
+            enemyStatus.buffs.push({ name: 'หายตัว', icon: '👻', type: 'dodgeUp', value: 1.0, turns: 2, color: '#6600cc' });
+            addLog('👻 ' + enemyChar.name + ' หายตัว!', 'enemy');
+        } else if (skill.buff === 'lightShield') {
+            enemyStatus.buffs.push({ name: 'เกราะแสง', icon: '✨', type: 'shield', value: 0.35, turns: 3, color: '#ffd700' });
+            addLog('🛡️ ' + enemyChar.name + ' สร้างเกราะแสง!', 'enemy');
         }
-    }, 100);
-}
-
-// ============ INPUT ============
-document.addEventListener('keydown', (e) => {
-    if (!state.active) return;
-
-    // Skill selection phase
-    if (document.getElementById('skill-menu').classList.contains('active')) {
-        if (e.key >= '1' && e.key <= '5') {
-            battle.selectSkill(parseInt(e.key) - 1);
+    } else if (skill.type === 'debuff') {
+        if (skill.debuff === 'freeze') {
+            playerStatus.freeze = 2;
+            addLog('🧊 ' + playerChar.name + ' ถูกแช่แข็ง! 2 รอบ', 'enemy');
+            showEffect('snowFall');
+        } else if (skill.debuff === 'stun') {
+            playerStatus.stun = 1;
+            addLog('😵 ' + playerChar.name + ' ถูกช็อตสตัน! 1 รอบ', 'enemy');
+            showEffect('thunderBurst');
         }
+    } else if (skill.type === 'heal') {
+        const healAmount = skill.heal;
+        enemyChar.hp = Math.min(enemyChar.maxHp, enemyChar.hp + healAmount);
+        addLog('💚 ' + enemyChar.name + ' รักษาตัวเอง ' + healAmount + ' HP!', 'enemy');
+        showHealNumber('enemy', healAmount);
+        showEffect('healBurst');
+    }
+
+    enemyChar.ultimateCharge = Math.min(enemyChar.maxUltimateCharge, enemyChar.ultimateCharge + 1);
+    enemyChar.energy = Math.min(100, enemyChar.energy + 5);
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+    updateComboDisplay();
+
+    if (playerChar.hp <= 0) {
+        endGame('lose');
         return;
     }
 
-    // Typing phase
-    if (!document.getElementById('challenge-area').classList.contains('active')) return;
+    setTimeout(() => {
+        endEnemyTurn();
+    }, 1500);
+}
 
-    const p = state.turn === 1 ? state.p1 : state.p2;
-    const code = state.currentCode.code;
+// ==================== ศัตรูโจมตีธรรมดา ====================
+function enemyBasicAttack() {
+    let damage = Math.floor(enemyChar.atk * 0.8);
+    let isCrit = Math.random() < 0.1;
+    if (isCrit) damage = Math.floor(damage * 1.5);
 
-    if (e.key.length === 1 || e.key === 'Enter') {
-        e.preventDefault();
+    let dodgeChance = playerChar.spd / 200;
+    playerStatus.buffs.forEach(buff => {
+        if (buff.type === 'dodgeUp') dodgeChance += buff.value;
+    });
+
+    if (Math.random() < dodgeChance) {
+        addLog('💨 ' + playerChar.name + ' หลบหลีกการโจมตีธรรมดา!', 'player');
+        showDodgeEffect('player');
+    } else {
+        let actualDamage = damage;
+        playerStatus.buffs.forEach(buff => {
+            if (buff.type === 'shield') actualDamage = Math.floor(actualDamage * (1 - buff.value));
+        });
+
+        playerChar.hp -= actualDamage;
+        enemyTotalDamage += actualDamage;
+
+        showDamageNumber('player', actualDamage, isCrit);
+        addLog((isCrit ? '💥 ' : '') + enemyChar.name + ' โจมตีธรรมดา ทำดาเมจ ' + actualDamage + ' แต้ม!', 'enemy');
+
+        document.getElementById('playerAvatar').classList.add('hit-anim');
+        document.getElementById('playerFighter').classList.add('shake');
+
+        setTimeout(() => {
+            document.getElementById('playerAvatar').classList.remove('hit-anim');
+            document.getElementById('playerFighter').classList.remove('shake');
+        }, 500);
     }
 
-    if (e.key === 'Backspace') {
-        if (p.typed && p.typed.length > 0) {
-            p.typed = p.typed.slice(0, -1);
-        }
-    } else if (e.key.length === 1) {
-        p.typed += e.key;
-        const expected = code[p.typed.length - 1];
-        if (e.key !== expected) {
-            p.errors = (p.errors || 0) + 1;
-        }
-    } else if (e.key === 'Enter') {
-        p.typed += '\n';
+    enemyChar.ultimateCharge = Math.min(enemyChar.maxUltimateCharge, enemyChar.ultimateCharge + 1);
+    enemyChar.energy = Math.min(100, enemyChar.energy + 10);
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+    updateComboDisplay();
+
+    if (playerChar.hp <= 0) {
+        endGame('lose');
+        return;
     }
 
-    updateCodeDisplay(p.typed);
+    setTimeout(() => {
+        endEnemyTurn();
+    }, 1000);
+}
 
-    // Check complete
-    if (p.typed === code) {
-        clearInterval(state.timerInterval);
-        const timeUsed = state.currentCode.time - state.timer;
-        skillSuccess(timeUsed);
+// ==================== ศัตรูใช้อัลติเมท ====================
+function enemyUseUltimate() {
+    enemyChar.ultimateCharge = 0;
+    const ult = enemyChar.ultimate;
+
+    showUltimateName(ult.name, ult.icon);
+    showUltimateEffect(ult.effect);
+
+    let damage = Math.floor(enemyChar.atk * ult.damage);
+    let isCrit = Math.random() < 0.3;
+    if (isCrit) damage = Math.floor(damage * 1.5);
+
+    let dodgeChance = playerChar.spd / 300;
+    if (Math.random() < dodgeChance) {
+        addLog('💨 ' + playerChar.name + ' หลบหลีกอัลติเมท!', 'player');
+        showDodgeEffect('player');
+    } else {
+        playerChar.hp -= damage;
+        enemyTotalDamage += damage;
+        enemyCombo = 0;
+
+        showDamageNumber('player', damage, true);
+        addLog('🔥🔥🔥 ' + enemyChar.name + ' ใช้อัลติเมท ' + ult.name + ' ทำดาเมจ ' + damage + ' แต้ม!!! 🔥🔥🔥', 'ultimate');
+
+        document.getElementById('playerAvatar').classList.add('hit-anim');
+        document.getElementById('playerFighter').classList.add('shake');
+        document.getElementById('battleField').classList.add('earthquake-anim');
+        showEffect('screenFlash');
+        showEffect('explosion');
+        showEffect('bloodSplash');
+
+        setTimeout(() => {
+            document.getElementById('playerAvatar').classList.remove('hit-anim');
+            document.getElementById('playerFighter').classList.remove('shake');
+            document.getElementById('battleField').classList.remove('earthquake-anim');
+        }, 1000);
+    }
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+    updateComboDisplay();
+
+    if (playerChar.hp <= 0) {
+        endGame('lose');
+        return;
+    }
+
+    setTimeout(() => {
+        endEnemyTurn();
+    }, 2500);
+}
+
+// ==================== จบตาศัตรู ====================
+function endEnemyTurn() {
+    if (!gameActive) return;
+
+    // ประมวลผล DOT ศัตรู
+    processDOT('enemy');
+
+    // ลดเวลาบัฟศัตรู
+    processBuffs('enemy');
+
+    // ลดเวลาสถานะศัตรู
+    processStatus('enemy');
+
+    // ฟื้นฟูพลังงาน
+    enemyChar.energy = Math.min(100, enemyChar.energy + 15);
+
+    updateFighterUI('player');
+    updateFighterUI('enemy');
+    renderSkills();
+
+    round++;
+    currentTurn = 'player';
+    updateTurnIndicator();
+
+    document.getElementById('turnCount').textContent = 'รอบที่: ' + round;
+    document.getElementById('roundCounter').textContent = 'รอบที่ ' + round;
+
+    // ตรวจสอบชนะแพ้
+    if (playerChar.hp <= 0) {
+        endGame('lose');
+        return;
+    }
+    if (enemyChar.hp <= 0) {
+        endGame('win');
+        return;
+    }
+
+    addLog('🎮 ตาของคุณ! เลือกสกิลเพื่อโจมตี', 'player');
+}
+
+// ==================== ประมวลผล DOT ====================
+function processDOT(side) {
+    const status = side === 'player' ? playerStatus : enemyStatus;
+    const char = side === 'player' ? playerChar : enemyChar;
+
+    if (status.burn > 0) {
+        const burnDamage = Math.floor(char.maxHp * 0.05);
+        char.hp -= burnDamage;
+        status.burn--;
+        addLog('🔥 ' + char.name + ' เผาไหม้! -' + burnDamage + ' HP (เหลือ ' + status.burn + ' รอบ)', 'system');
+        showDamageNumber(side, burnDamage, false);
+        if (side === 'player') document.getElementById('playerAvatar').classList.add('burn-effect');
+        else document.getElementById('enemyAvatar').classList.add('burn-effect');
+        setTimeout(() => {
+            document.getElementById(side + 'Avatar').classList.remove('burn-effect');
+        }, 500);
+    }
+
+    if (status.poison > 0) {
+        const poisonDamage = Math.floor(char.maxHp * 0.04);
+        char.hp -= poisonDamage;
+        status.poison--;
+        addLog('☠️ ' + char.name + ' ติดพิษ! -' + poisonDamage + ' HP (เหลือ ' + status.poison + ' รอบ)', 'system');
+        showDamageNumber(side, poisonDamage, false);
+        if (side === 'player') document.getElementById('playerAvatar').classList.add('poison-effect-fighter');
+        else document.getElementById('enemyAvatar').classList.add('poison-effect-fighter');
+        setTimeout(() => {
+            document.getElementById(side + 'Avatar').classList.remove('poison-effect-fighter');
+        }, 500);
+    }
+
+    if (status.bleed > 0) {
+        const bleedDamage = Math.floor(char.maxHp * 0.03);
+        char.hp -= bleedDamage;
+        status.bleed--;
+        addLog('🩸 ' + char.name + ' เลือดไหล! -' + bleedDamage + ' HP (เหลือ ' + status.bleed + ' รอบ)', 'system');
+        showDamageNumber(side, bleedDamage, false);
+    }
+}
+
+// ==================== ประมวลผลบัฟ ====================
+function processBuffs(side) {
+    const status = side === 'player' ? playerStatus : enemyStatus;
+    status.buffs = status.buffs.filter(buff => {
+        buff.turns--;
+        if (buff.turns <= 0) {
+            addLog('⏳ ' + (side === 'player' ? playerChar.name : enemyChar.name) + ' ' + buff.name + ' หมดเวลา!', 'system');
+            return false;
+        }
+        return true;
+    });
+}
+
+// ==================== ประมวลผลสถานะ ====================
+function processStatus(side) {
+    const status = side === 'player' ? playerStatus : enemyStatus;
+    if (status.stun > 0) status.stun--;
+    if (status.freeze > 0) status.freeze--;
+}
+
+// ==================== อัปเดตตัวชี้ตา ====================
+function updateTurnIndicator() {
+    const indicator = document.getElementById('turnIndicator');
+    if (currentTurn === 'player') {
+        indicator.innerHTML = '<span class="turn-player">🛡️ ตาของคุณ</span>';
+        document.getElementById('playerFighter').classList.add('turn-highlight');
+        document.getElementById('enemyFighter').classList.remove('turn-highlight');
+        document.getElementById('playerFighter').style.boxShadow = '0 0 30px #4488ff';
+        document.getElementById('enemyFighter').style.boxShadow = 'none';
+    } else {
+        indicator.innerHTML = '<span class="turn-enemy">⚔️ ตาของศัตรู</span>';
+        document.getElementById('playerFighter').classList.remove('turn-highlight');
+        document.getElementById('enemyFighter').classList.add('turn-highlight');
+        document.getElementById('playerFighter').style.boxShadow = 'none';
+        document.getElementById('enemyFighter').style.boxShadow = '0 0 30px #ff4444';
+    }
+}
+
+// ==================== แสดงดาเมจ ====================
+function showDamageNumber(side, damage, isCrit) {
+    const fighter = document.getElementById(side + 'Fighter');
+    const num = document.createElement('div');
+    num.className = isCrit ? 'damage-number critical-hit' : 'damage-number';
+    num.textContent = '-' + damage;
+    num.style.left = (Math.random() * 100 - 50) + 'px';
+    num.style.top = '-50px';
+    fighter.appendChild(num);
+
+    if (isCrit) {
+        showEffect('impactShockwave');
+        showEffect('impactLines');
+    }
+
+    setTimeout(() => num.remove(), 1500);
+}
+
+// ==================== แสดงฮีล ====================
+function showHealNumber(side, amount) {
+    const fighter = document.getElementById(side + 'Fighter');
+    const num = document.createElement('div');
+    num.className = 'heal-number';
+    num.textContent = '+' + amount;
+    num.style.left = (Math.random() * 100 - 50) + 'px';
+    num.style.top = '-50px';
+    fighter.appendChild(num);
+    setTimeout(() => num.remove(), 1500);
+}
+
+// ==================== แสดงหลบหลีก ====================
+function showDodgeEffect(side) {
+    const avatar = document.getElementById(side + 'Avatar');
+    avatar.classList.add('dodge-anim');
+    setTimeout(() => avatar.classList.remove('dodge-anim'), 500);
+
+    const fighter = document.getElementById(side + 'Fighter');
+    const text = document.createElement('div');
+    text.className = 'dodge-text';
+    text.textContent = 'หลบหลีก!';
+    text.style.position = 'absolute';
+    text.style.top = '-60px';
+    text.style.left = '50%';
+    text.style.transform = 'translateX(-50%)';
+    fighter.appendChild(text);
+    setTimeout(() => text.remove(), 1000);
+}
+
+// ==================== แสดงเอฟเฟคสกิล ====================
+function showSkillEffect(effectName, icon) {
+    const anim = document.getElementById('skillAnim');
+    anim.textContent = icon;
+    anim.style.display = 'block';
+    anim.style.animation = 'none';
+    anim.offsetHeight; // trigger reflow
+    anim.style.animation = 'skillAnimBurst 1s forwards';
+
+    setTimeout(() => { anim.style.display = 'none'; }, 1000);
+
+    // เอฟเฟคเพิ่มเติมตามประเภท
+    switch(effectName) {
+        case 'slash': case 'jump': case 'dualSword':
+            showEffect('slashTrail'); break;
+        case 'fire': case 'burn':
+            showEffect('fireBurst'); break;
+        case 'ice': case 'blizzard': case 'glacier':
+            showEffect('iceBurst'); showEffect('snowFall'); break;
+        case 'thunder': case 'storm': case 'judgment':
+            showEffect('thunderBurst'); break;
+        case 'shadow': case 'shadowBurst':
+            showEffect('shadowBurst'); break;
+        case 'light': case 'holyBeam':
+            showEffect('lightBurst'); break;
+        case 'meteor':
+            showEffect('meteorFall'); break;
+        case 'heal':
+            showEffect('healBurst'); break;
+        case 'shield':
+            showEffect('shieldBurst'); break;
+        case 'poison':
+            showEffect('poisonMist'); break;
+        case 'wind':
+            showEffect('windSweep'); break;
+        case 'earth':
+            showEffect('earthSplit'); break;
+        case 'water':
+            showEffect('waterRise'); break;
+        case 'magic':
+            showEffect('magicCircle'); break;
+        case 'rune':
+            showEffect('runeCircle'); break;
+    }
+}
+
+// ==================== แสดงเอฟเฟคอัลติเมท ====================
+function showUltimateEffect(effectName) {
+    showEffect('ultimateFlash');
+    showEffect('screenFlash');
+    showEffect('godAura');
+    showEffect('explosion');
+
+    switch(effectName) {
+        case 'phoenix':
+            showEffect('phoenixEffect');
+            showEffect('fireBurst');
+            showEffect('fireRing');
+            break;
+        case 'iceGod':
+            showEffect('iceGod');
+            showEffect('iceBurst');
+            showEffect('snowFall');
+            showEffect('tornado');
+            break;
+        case 'thunderGod':
+            showEffect('thunderGod');
+            showEffect('thunderBurst');
+            showEffect('energyBeam');
+            break;
+        case 'shadowGod':
+            showEffect('shadowGod');
+            showEffect('shadowBurst');
+            showEffect('darknessBurst');
+            break;
+        case 'lightGod':
+            showEffect('lightGod');
+            showEffect('lightBurst');
+            showEffect('starBurst');
+            break;
+    }
+}
+
+// ==================== แสดงชื่ออัลติเมท ====================
+function showUltimateName(name, icon) {
+    const display = document.getElementById('ultimateNameDisplay');
+    display.innerHTML = icon + '<br>' + name;
+    display.style.display = 'block';
+    display.style.animation = 'none';
+    display.offsetHeight;
+    display.style.animation = 'ultimateNameAnim 2s forwards';
+    setTimeout(() => { display.style.display = 'none'; }, 2000);
+}
+
+// ==================== แสดงเอฟเฟคทั่วไป ====================
+function showEffect(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.style.display = 'block';
+    el.style.animation = 'none';
+    el.offsetHeight;
+
+    // หา animation ที่เหมาะสม
+    const animations = {
+        'screenFlash': 'screenFlashAnim',
+        'ultimateFlash': 'ultimateFlashAnim',
+        'skillAnim': 'skillAnimBurst',
+        'slashTrail': 'slashTrailAnim',
+        'fireBurst': 'fireBurstAnim',
+        'iceBurst': 'iceBurstAnim',
+        'thunderBurst': 'thunderBurstAnim',
+        'poisonMist': 'poisonMistAnim',
+        'healBurst': 'healBurstAnim',
+        'shieldBurst': 'shieldBurstAnim',
+        'windSweep': 'windSweepAnim',
+        'shadowBurst': 'shadowBurstAnim',
+        'lightBurst': 'lightBurstAnim',
+        'darknessBurst': 'darknessBurstAnim',
+        'meteorFall': 'meteorFallAnim',
+        'tornado': 'tornadoAnim',
+        'waterRise': 'waterRiseAnim',
+        'magicCircle': 'magicCircleAnim',
+        'godAura': 'godAuraAnim',
+        'dualSword': 'dualSwordAnim',
+        'arrowRain': 'arrowRainAnim',
+        'energyBeam': 'energyBeamAnim',
+        'timeStop': 'timeStopAnim',
+        'snowFall': 'snowFallAnim',
+        'fireworkBurst': 'fireworkBurstAnim',
+        'starBurst': 'starBurstAnim',
+        'explosion': 'explosionAnim',
+        'bloodSplash': 'bloodSplashAnim',
+        'soundWave': 'soundWaveAnim',
+        'energyBall': 'energyBallAnim',
+        'earthSplit': 'earthSplitAnim',
+        'fireRing': 'fireRingAnim',
+        'chargeEffect': 'chargeEffectAnim',
+        'impactShockwave': 'shockwaveAnim',
+        'crackEffect': 'crackAnim',
+        'impactLines': 'impactLine1',
+        'energyWave': 'energyWaveExpand',
+        'runeCircle': 'runeCircleAnim',
+        'thunderGod': 'thunderGodAnim',
+        'dragonEffect': 'dragonAnim',
+        'phoenixEffect': 'phoenixAnim',
+        'iceGod': 'iceGodAnim',
+        'shadowGod': 'shadowGodAnim',
+        'lightGod': 'lightGodAnim',
+        'natureGod': 'natureGodAnim',
+        'swordGod': 'swordGodAnim',
+        'magicGod': 'magicGodAnim',
+        'poisonGod': 'poisonGodAnim',
+        'windGod': 'windGodAnim',
+        'earthGod': 'earthGodAnim'
+    };
+
+    const animName = animations[elementId];
+    if (animName) {
+        el.style.animation = animName + ' 1s forwards';
+    }
+
+    setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+// ==================== อัปเดตคอมโบ ====================
+function updateComboDisplay() {
+    document.getElementById('comboDisplay').textContent = 'คอมโบ: ' + playerCombo;
+    document.getElementById('totalDamage').textContent = 'ดาเมจรวม: ' + playerTotalDamage;
+}
+
+// ==================== เพิ่มบันทึก ====================
+function addLog(message, type) {
+    const log = document.getElementById('battleLog');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry log-' + type;
+    entry.textContent = message;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+
+    // จำกัดจำนวนบันทึก
+    while (log.children.length > 50) {
+        log.removeChild(log.firstChild);
+    }
+}
+
+// ==================== จบเกม ====================
+function endGame(result) {
+    gameActive = false;
+
+    const gameOver = document.getElementById('gameOver');
+    const gameOverText = document.getElementById('gameOverText');
+    const gameOverStats = document.getElementById('gameOverStats');
+
+    gameOver.style.display = 'flex';
+
+    if (result === 'win') {
+        gameOverText.textContent = '🎉 ชัยชนะ! 🎉';
+        gameOverText.className = 'game-over-text game-over-win';
+        document.getElementById('playerAvatar').classList.add('victory-anim');
+        document.getElementById('enemyAvatar').classList.add('defeat-anim');
+        showEffect('fireworkBurst');
+        showEffect('starBurst');
+
+        // คำนวณคะแนน
+        const hpBonus = Math.floor((playerChar.hp / playerChar.maxHp) * 100);
+        const comboBonus = playerCombo * 10;
+        const roundBonus = Math.max(0, 50 - round);
+        const totalScore = playerTotalDamage + hpBonus + comboBonus + roundBonus;
+
+        gameOverStats.innerHTML = `
+            <div style="font-size:1.2em; color:#ffd700; margin:10px 0;">
+                ⭐ คะแนนรวม: ${totalScore} ⭐<br>
+                💥 ดาเมจทั้งหมด: ${playerTotalDamage}<br>
+                ❤️ HP เหลือ: ${Math.max(0, playerChar.hp)}/${playerChar.maxHp} (+${hpBonus})<br>
+                🔥 คอมโบสูงสุด: ${playerCombo} (+${comboBonus})<br>
+                ⏱️ รอบที่ใช้: ${round} (+${roundBonus})<br>
+                🎯 ระดับ: ${difficulty === 'easy' ? 'ง่าย' : difficulty === 'normal' ? 'ปกติ' : 'ยาก'}
+            </div>
+        `;
+    } else {
+        gameOverText.textContent = '💀 แพ้แล้ว! 💀';
+        gameOverText.className = 'game-over-text game-over-lose';
+        document.getElementById('playerAvatar').classList.add('defeat-anim');
+        document.getElementById('enemyAvatar').classList.add('victory-anim');
+
+        gameOverStats.innerHTML = `
+            <div style="font-size:1.2em; color:#ff4444; margin:10px 0;">
+                💥 ดาเมจทั้งหมด: ${playerTotalDamage}<br>
+                ⚔️ รอบที่ใช้: ${round}<br>
+                🎯 ระดับ: ${difficulty === 'easy' ? 'ง่าย' : difficulty === 'normal' ? 'ปกติ' : 'ยาก'}<br>
+                <br>💪 ลองใหม่อีกครั้ง!
+            </div>
+        `;
+    }
+}
+
+// ==================== รีเซ็ตเกม ====================
+function restartGame() {
+    // รีเซ็ตตัวแปร
+    playerChar = null;
+    enemyChar = null;
+    currentTurn = 'player';
+    round = 1;
+    gameActive = false;
+    selectedCharIndex = -1;
+    playerCombo = 0;
+    enemyCombo = 0;
+    playerTotalDamage = 0;
+    enemyTotalDamage = 0;
+
+    // รีเซ็ตสถานะ
+    playerStatus = { stun: 0, burn: 0, freeze: 0, poison: 0, bleed: 0, buffs: [] };
+    enemyStatus = { stun: 0, burn: 0, freeze: 0, poison: 0, bleed: 0, buffs: [] };
+
+    // ซ่อนหน้าจอ
+    document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('battleArena').style.display = 'none';
+    document.getElementById('selectScreen').style.display = 'block';
+
+    // รีเซ็ต UI
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('selectInfo').textContent = 'คลิกเลือกตัวละคร 1 ตัว';
+    document.getElementById('battleLog').innerHTML = '<div class="log-entry log-system">⚔️ ศึกเริ่มต้นขึ้นแล้ว!</div>';
+    document.getElementById('turnCount').textContent = 'รอบที่: 1';
+    document.getElementById('comboDisplay').textContent = 'คอมโบ: 0';
+    document.getElementById('totalDamage').textContent = 'ดาเมจรวม: 0';
+
+    // รีเซ็ตการ์ด
+    document.querySelectorAll('.character-card').forEach(card => {
+        card.classList.remove('selected', 'selected-enemy');
+    });
+
+    // รีเซ็ต avatar
+    document.getElementById('playerAvatar').classList.remove('victory-anim', 'defeat-anim', 'burn-effect', 'poison-effect-fighter', 'freeze-effect', 'stun-effect');
+    document.getElementById('enemyAvatar').classList.remove('victory-anim', 'defeat-anim', 'burn-effect', 'poison-effect-fighter', 'freeze-effect', 'stun-effect');
+
+    renderCharacterSelect();
+}
+
+// ==================== ป้องกันการคลิกขณะตาศัตรู ====================
+document.addEventListener('click', function(e) {
+    if (currentTurn === 'enemy' && gameActive) {
+        const target = e.target;
+        if (target.classList.contains('skill-btn') || target.classList.contains('ultimate-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            addLog('⏳ รอศัตรูเดินก่อน!', 'system');
+        }
     }
 });
 
-// ============ SKILL RESULT ============
-function skillSuccess(timeUsed) {
-    const p = state.turn === 1 ? state.p1 : state.p2;
-    const enemy = state.turn === 1 ? state.p2 : state.p1;
-    const char = CHARACTERS[p.char];
-    const skill = char.skills[state.selectedSkill];
+// ==================== คีย์บอร์ดชอร์ตคัท ====================
+document.addEventListener('keydown', function(e) {
+    if (!gameActive || currentTurn !== 'player') return;
 
-    document.getElementById('challenge-area').classList.remove('active');
-
-    // Calculate accuracy
-    const accuracy = p.typed.length > 0 ? ((p.typed.length - (p.errors || 0)) / p.typed.length * 100) : 100;
-
-    // Time bonus/penalty
-    let timeBonus = 1;
-    if (timeUsed < skill.time * 0.5) timeBonus = 1.3;
-    else if (timeUsed < skill.time * 0.8) timeBonus = 1.1;
-    else if (timeUsed > skill.time * 0.9) timeBonus = 0.9;
-
-    // Apply skill
-    switch(skill.type) {
-        case 'attack':
-            let damage = Math.floor((char.atk * skill.power * p.buffAtk * timeBonus) - enemy.def);
-            if (enemy.defendTurns > 0) damage = Math.floor(damage * 0.5);
-            damage = Math.max(1, damage);
-            enemy.hp = Math.max(0, enemy.hp - damage);
-
-            // Add ultimate gauge
-            p.ultGauge = Math.min(100, p.ultGauge + 20);
-
-            showDamage(state.turn === 1 ? 'p2' : 'p1', damage);
-            addLog(`⚔️ ${char.name} ใช้ ${skill.name}! ดาเมจ ${damage}! (ความถูกต้อง ${accuracy.toFixed(0)}%)`);
-            break;
-
-        case 'defend':
-            p.defendTurns = 2;
-            p.ultGauge = Math.min(100, p.ultGauge + 15);
-            addLog(`🛡️ ${char.name} ใช้ ${skill.name}! ป้องกันเพิ่มขึ้น 2 เทิร์น!`);
-            break;
-
-        case 'heal':
-            const heal = Math.floor(p.maxHp * skill.power * timeBonus);
-            p.hp = Math.min(p.maxHp, p.hp + heal);
-            p.ultGauge = Math.min(100, p.ultGauge + 15);
-            addLog(`💚 ${char.name} ใช้ ${skill.name}! ฮีล ${heal} HP!`);
-            break;
-
-        case 'buff':
-            p.buffAtk = skill.power;
-            p.buffTurns = 2;
-            p.ultGauge = Math.min(100, p.ultGauge + 15);
-            addLog(`⚡ ${char.name} ใช้ ${skill.name}! พลังโจมตี x${skill.power} สำหรับ 2 เทิร์น!`);
-            break;
-
-        case 'ultimate':
-            let ultDamage = Math.floor((char.atk * skill.power * p.buffAtk) - enemy.def);
-            if (enemy.defendTurns > 0) ultDamage = Math.floor(ultDamage * 0.5);
-            ultDamage = Math.max(1, ultDamage);
-            enemy.hp = Math.max(0, enemy.hp - ultDamage);
-            p.ultGauge = 0;
-
-            showDamage(state.turn === 1 ? 'p2' : 'p1', ultDamage);
-            addLog(`🔥🔥🔥 ${char.name} ปล่อย ${skill.name}!!! ดาเมจมหาศาล ${ultDamage}! 🔥🔥🔥`);
-            break;
+    const key = e.key;
+    if (key >= '1' && key <= '5') {
+        const skillIndex = parseInt(key) - 1;
+        if (skillIndex < playerChar.skills.length) {
+            useSkill(skillIndex);
+        }
+    } else if (key === ' ' || key === 'Enter') {
+        e.preventDefault();
+        if (playerChar.ultimateCharge >= playerChar.maxUltimateCharge) {
+            useUltimate();
+        }
     }
+});
 
-    updateHP();
-    updateUlt();
-
-    // Check win
-    if (enemy.hp <= 0) {
-        setTimeout(() => endGame(state.turn), 1000);
-        return;
-    }
-
-    // Switch turn
-    state.turn = state.turn === 1 ? 2 : 1;
-    setTimeout(startTurn, 1500);
-}
-
-function skillFail() {
-    const p = state.turn === 1 ? state.p1 : state.p2;
-    const char = CHARACTERS[p.char];
-
-    document.getElementById('challenge-area').classList.remove('active');
-    addLog(`❌ ${char.name} พิมพ์ไม่ทัน! สกิลล้มเหลว!`);
-
-    state.turn = state.turn === 1 ? 2 : 1;
-    setTimeout(startTurn, 1500);
-}
-
-// ============ VISUAL EFFECTS ============
-function showDamage(target, damage) {
-    const card = document.getElementById(target === 'p1' ? 'card-p1' : 'card-p2');
-    const float = document.createElement('div');
-    float.className = 'damage-float';
-    float.textContent = `-${damage}`;
-    float.style.left = '50%';
-    float.style.top = '20%';
-    float.style.transform = 'translateX(-50%)';
-    float.style.color = '#e74c3c';
-    card.appendChild(float);
-    setTimeout(() => float.remove(), 1000);
-}
-
-// ============ UI UPDATES ============
-function updateHP() {
-    document.getElementById('hp-p1').style.width = (state.p1.hp / state.p1.maxHp * 100) + '%';
-    document.getElementById('hp-text-p1').textContent = `${state.p1.hp}/${state.p1.maxHp}`;
-    document.getElementById('hp-p2').style.width = (state.p2.hp / state.p2.maxHp * 100) + '%';
-    document.getElementById('hp-text-p2').textContent = `${state.p2.hp}/${state.p2.maxHp}`;
-}
-
-function updateUlt() {
-    document.getElementById('ult-p1').style.width = state.p1.ultGauge + '%';
-    document.getElementById('ult-text-p1').textContent = `ท่าไม้ตาย: ${state.p1.ultGauge}%`;
-    document.getElementById('ult-p2').style.width = state.p2.ultGauge + '%';
-    document.getElementById('ult-text-p2').textContent = `ท่าไม้ตาย: ${state.p2.ultGauge}%`;
-}
-
-function addLog(msg) {
-    const log = document.getElementById('battle-log');
-    const div = document.createElement('div');
-    div.innerHTML = msg;
-    log.appendChild(div);
-    log.scrollTop = log.scrollHeight;
-}
-
-// ============ END GAME ============
-function endGame(winner) {
-    state.active = false;
-    const winChar = CHARACTERS[winner === 1 ? state.p1.char : state.p2.char];
-    const loseChar = CHARACTERS[winner === 1 ? state.p2.char : state.p1.char];
-
-    document.getElementById('result-title').textContent = `🏆 ${winChar.name} ชนะ!`;
-    document.getElementById('result-stats').innerHTML = `
-        <strong>${winChar.name}</strong> เอาชนะ <strong>${loseChar.name}</strong><br>
-        HP เหลือ: ${winner === 1 ? state.p1.hp : state.p2.hp}/${winner === 1 ? state.p1.maxHp : state.p2.maxHp}<br>
-        ใช้เวลาทั้งหมด: ${state.round} เทิร์น
-    `;
-    document.getElementById('result-screen').classList.add('active');
-}
-
-// ============ INIT ============
-function init() {
-    drawCharSprite('opt-warrior', 'warrior', true);
-    drawCharSprite('opt-mage', 'mage', true);
-    drawCharSprite('opt-ninja', 'ninja', true);
-    gameLoop();
-}
-
-function gameLoop() {
-    renderBg();
-    requestAnimationFrame(gameLoop);
-}
-
-init();
+// ==================== เริ่มต้น ====================
+console.log('⚔️ ศึกสงคราม 5 อัศวิน พร้อมเล่น!');
+console.log('คีย์ลัด: 1-5 = สกิล, Space/Enter = อัลติเมท');
 </script>
 </body>
 </html>
